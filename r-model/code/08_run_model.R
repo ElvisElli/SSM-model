@@ -20,16 +20,36 @@ suppressPackageStartupMessages({
 })
 
 # --- Set paths relative to the r-model root --------------------------------
-# Adjust BASE_DIR if running from a different location
-BASE_DIR    <- normalizePath(file.path(dirname(sys.frame(1)$ofile), ".."),
-                              mustWork = FALSE)
-if (!dir.exists(BASE_DIR)) {
-  # Fallback: guess from current working directory
-  BASE_DIR <- normalizePath(".", mustWork = FALSE)
-  if (!file.exists(file.path(BASE_DIR, "inputs/scenarios.csv"))) {
-    # Try one level up (if cwd is /code)
-    BASE_DIR <- normalizePath("..", mustWork = FALSE)
-  }
+# Supports: Rscript 08_run_model.R, source("..."), RStudio R project, or
+# setting BASE_DIR externally before sourcing.
+if (!exists("BASE_DIR") || !dir.exists(BASE_DIR)) {
+  BASE_DIR <- tryCatch({
+    # Walk call stack looking for an $ofile entry (set when file is sourced)
+    script_path <- NULL
+    for (i in seq_len(sys.nframe())) {
+      ofile <- sys.frame(i)$ofile
+      if (!is.null(ofile) && nchar(ofile) > 0) {
+        script_path <- normalizePath(ofile, mustWork = FALSE)
+        break
+      }
+    }
+    if (!is.null(script_path)) {
+      d <- dirname(script_path)
+      if (basename(d) == "code") dirname(d) else d   # r-model/code → r-model
+    } else {
+      # Rscript without $ofile: try working directory heuristics
+      cwd <- getwd()
+      if (file.exists(file.path(cwd, "inputs/scenarios.csv"))) {
+        cwd
+      } else if (file.exists(file.path(cwd, "r-model/inputs/scenarios.csv"))) {
+        file.path(cwd, "r-model")
+      } else if (file.exists(file.path(cwd, "../inputs/scenarios.csv"))) {
+        normalizePath(file.path(cwd, ".."), mustWork = FALSE)
+      } else {
+        stop("Cannot find r-model base directory. Open SSM-soybean.Rproj or set BASE_DIR.")
+      }
+    }
+  }, error = function(e) stop(e$message))
 }
 
 INPUT_DIR   <- file.path(BASE_DIR, "inputs")
@@ -144,12 +164,37 @@ run_all_scenarios <- function(scenarios_file = NULL, save_daily = FALSE) {
       n_years    <- as.integer(scn$yrno)
       years      <- seq(start_year, start_year + n_years - 1)
 
+      # FTSWRZ carry-over (VBA behaviour):
+      # Layers always re-initialize at DUL at the start of each year (no
+      # multi-day pre-sowing loop — SimDoy==Pdoy for every scenario). Only a
+      # scalar FTSWRZ carries over from the previous year's end and determines
+      # stage-1 vs stage-2 evaporation on the first day (sowing day) of the
+      # new year, via the `FTSWRZ < 0.5` check in step_soil_water().
+      #
+      # Warm-up year (fyear-1): VBA simulates one un-reported year before the
+      # first reported year to obtain this initial carry-over. We run it here
+      # (for every scenario, irrigated or rainfed) and use its actual computed
+      # shallow-root-zone FTSWRZ — not a hardcoded guess.
+      warmup_yr <- start_year - 1L
+      prev_ftswrz <- 0
+      if (warmup_yr %in% wth_data$YEAR) {
+        wu <- tryCatch(
+          run_ssm_year(scn, wth_data, soil, warmup_yr, verbose = FALSE,
+                       init_ftswrz = 0),
+          error = function(e) NULL
+        )
+        if (!is.null(wu)) {
+          prev_ftswrz <- wu$final_ftswrz_shallow
+        }
+      }
+
       for (yr in years) {
         # Check if this year exists in weather data
         if (!yr %in% wth_data$YEAR) next
 
         result <- tryCatch(
-          run_ssm_year(scn, wth_data, soil, yr, verbose = save_daily),
+          run_ssm_year(scn, wth_data, soil, yr, verbose = save_daily,
+                       init_ftswrz = prev_ftswrz),
           error = function(e) {
             message(sprintf("    ERROR: scenario=%s, year=%d: %s",
                             scn$scenario, yr, e$message))
@@ -160,6 +205,8 @@ run_all_scenarios <- function(scenarios_file = NULL, save_daily = FALSE) {
         if (!is.null(result)) {
           result_idx <- result_idx + 1
           loc_results[[result_idx]] <- result$summary
+          # Subsequent years carry the deep (full root-zone) FTSWRZ forward
+          prev_ftswrz <- result$final_ftswrz
         }
       }
     }

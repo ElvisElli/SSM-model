@@ -31,7 +31,7 @@
 # Returns:
 #   Named list with all soil water state variables
 # =============================================================================
-init_soil_water <- function(soil, crop_pars, CO2 = 420, CO2REF = 385) {
+init_soil_water <- function(soil, crop_pars, CO2 = 420, CO2REF = 385, init_ftswrz = 0) {
   # Crop water parameters
   DEPORT  <- as.numeric(crop_pars$DEPORT)   # Initial root depth (mm)
   MEED    <- as.numeric(crop_pars$MEED)     # Maximum effective root depth (mm)
@@ -72,7 +72,7 @@ init_soil_water <- function(soil, crop_pars, CO2 = 420, CO2REF = 385) {
   DRAINF <- layers$DRAINF      # Drainage coefficient (fraction per day)
 
   # Convert vol/vol to mm water per layer
-  WL    <- iWL  * DLYER   # current water per layer (mm)
+  WL    <- iWL  * DLYER   # current water per layer (mm) — layers always start at iWL (DUL)
   WLAD  <- ADRY * DLYER   # air-dry water
   WLLL  <- CLL  * DLYER   # lower limit water
   WLUL  <- DUL  * DLYER   # upper limit (field capacity)
@@ -123,10 +123,11 @@ init_soil_water <- function(soil, crop_pars, CO2 = 420, CO2REF = 385) {
     # Root and water stress
     DEPORT = DEPORT, RTLN = 1L, AROOT = 1,
     WSFL = 1, WSFG = 1, WSFD = 1, WSFN = 1, WSXF = 1,
-    # Root zone water
-    ATSWRZ = 0, TTSWRZ = 0, FTSWRZ = 0.5,
+    # Root zone water: FTSWRZ initialized from the shallow root zone of the previous
+    # year's final layer state (VBA carry-over: < 0.5 → stage-2; ≥ 0.5 → stage-1)
+    ATSWRZ = 0, TTSWRZ = 0, FTSWRZ = init_ftswrz,
     WRZ = 0, WRZUL = 0, WRZST = 0,
-    # Evaporation day counter
+    # Evaporation day counter: always reset to 1 at start of each season
     DYSE = 1,
     # Flood duration
     FLDUR = 0,
@@ -277,12 +278,11 @@ step_soil_water <- function(sw, state, bd_thres, weather,
   sw$CE   <- sw$CE + SEVP
 
   # ----------------------------------------------------------
-  # PLANT TRANSPIRATION (daily VPD mode)
+  # PLANT TRANSPIRATION
+  # TR is computed in step_dm_production for both daily and hourly VPD modes.
+  # Using it here ensures the LT trait (vpdtp=1) correctly reduces water uptake.
   # ----------------------------------------------------------
-  VPTMIN <- 0.6108 * exp(17.27 * TMIN / (TMIN + 237.3))
-  VPTMAX <- 0.6108 * exp(17.27 * TMAX / (TMAX + 237.3))
-  VPD    <- VPDF * (VPTMAX - VPTMIN)  # kPa
-  TR     <- state$DDMP * VPD / sw$TEC  # mm/d (TEC in Pa, VPD in kPa)
+  TR <- if (!is.null(state$TR)) state$TR else 0
   if (TR < 0) TR <- 0
   sw$TR  <- TR
   sw$CTR <- sw$CTR + TR
