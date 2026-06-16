@@ -131,9 +131,11 @@ compute_vpd_matrix <- function(wth, lat, vpdf = 0.75) {
   vpd_mat <- matrix(0.0, nrow = n, ncol = 24)
   for (H in 1:24) {
     angle  <- sin(Pi * (H - SUNRIS) / (DAYL + 2 * P))
-    TEMP1  <- ifelse(H < 13.5,
-                     TMIN  + (TMAX  - TMIN)  * angle,
-                     TMINA + (TMAX  - TMINA) * angle)
+    if (H < 13.5) {
+      TEMP1 <- TMIN  + (TMAX  - TMIN)  * angle
+    } else {
+      TEMP1 <- TMINA + (TMAX  - TMINA) * angle
+    }
     VPTEMP <- 0.6108 * exp(17.27 * TEMP1 / (237.3 + TEMP1))
     VPD1   <- pmax((VPTEMP - VPTMIN) * (vpdf / 0.75), 0)
     day_h  <- H > SUNRIS & H < SUNSET
@@ -331,14 +333,17 @@ compute_vpd_profiles <- function(df, loc_info, weather_dir) {
         row    <- win_sub[k, ]
         yr     <- as.integer(row$Pyear)
         Pdoy   <- as.integer(row$Pdoy)
-        R5_dap <- as.integer(row$R5)   # DAP to R5
-        R7_dap <- as.integer(row$R7)   # DAP to R7
-        if (is.na(R5_dap) || R5_dap <= 0) next
-        if (is.na(R7_dap) || R7_dap <= 0) next
+        EMR_dap <- as.integer(row$dtEMR)  # days to emergence (from planting)
+        R3_dap  <- as.integer(row$R3)     # DAP to R3 (beginning pod)
+        R7_dap  <- as.integer(row$R7)     # DAP to R7 (physiological maturity)
+        if (is.na(EMR_dap) || EMR_dap <= 0) EMR_dap <- 0L
+        if (is.na(R3_dap)  || R3_dap  <= 0) next
+        if (is.na(R7_dap)  || R7_dap  <= 0) next
 
-        # DOY ranges (handle year roll-over is not needed for US soybean)
-        veg_doys   <- seq(Pdoy, Pdoy + R5_dap - 1)
-        repro_doys <- seq(Pdoy + R5_dap, Pdoy + R7_dap - 1)
+        # DOY ranges: veg = emergence to R3, repro = R3 to R7
+        emr_doy    <- Pdoy + EMR_dap
+        veg_doys   <- seq(emr_doy, Pdoy + R3_dap - 1)
+        repro_doys <- seq(Pdoy + R3_dap, Pdoy + R7_dap - 1)
 
         idx_v <- which(as.integer(wth$YEAR) == yr & as.integer(wth$DOY) %in% veg_doys)
         idx_r <- which(as.integer(wth$YEAR) == yr & as.integer(wth$DOY) %in% repro_doys)
@@ -375,13 +380,16 @@ compute_vpd_profiles <- function(df, loc_info, weather_dir) {
 plot_vpd_diurnal <- function(vpd_prof, threshold = 2.0) {
   locs <- unique(vpd_prof$Location)
   n    <- length(locs)
-  nc   <- 5; nr <- ceiling(n / nc)
 
-  win_cols  <- c(Early = "#1e8449", Mid = "#d35400", Late = "#c0392b")
-  stg_lty   <- c(Vegetative = 1, Reproductive = 2)
-  stg_pch   <- c(Vegetative = 19, Reproductive = 17)
+  win_cols <- c(Early = "#1e8449", Mid = "#d35400", Late = "#c0392b")
+  stg_lty  <- c(Vegetative = 1, Reproductive = 2)
+  stg_pch  <- c(Vegetative = 19, Reproductive = 17)
 
-  par(mfrow = c(nr, nc), mar = c(3.5, 3.5, 2.5, 0.8),
+  # 10 data panels + 1 legend panel arranged in 3 rows × 4 cols (12 cells)
+  # legend spans cells 11-12 (bottom-right two cells)
+  lay_mat <- matrix(c(1:10, 11, 11), nrow = 3, byrow = TRUE)
+  layout(lay_mat, widths = rep(1, 4), heights = rep(1, 3))
+  par(mar = c(3.5, 3.5, 2.5, 0.8),
       oma = c(1, 1, 3.5, 1),
       bg = "white", fg = "#333333", col.axis = "#333333", col.lab = "#333333")
 
@@ -391,14 +399,14 @@ plot_vpd_diurnal <- function(vpd_prof, threshold = 2.0) {
     sub <- vpd_prof[vpd_prof$Location == loc, ]
     plot(NA, xlim = c(1, 24), ylim = c(0, y_max),
          xlab = "Hour of day", ylab = "Mean VPD (kPa)",
-         xaxt = "n", cex.axis = 0.75, cex.lab = 0.78)
+         xaxt = "n", cex.axis = 0.75, cex.lab = 0.78,
+         main = loc, cex.main = 0.88, font.main = 2, col.main = "#1a5276")
     axis(1, at = c(6, 9, 12, 15, 18, 21), cex.axis = 0.72)
-    abline(h = threshold, lty = 3, col = "grey50", lwd = 1.2)
-    text(23, threshold + 0.05, paste0(threshold, " kPa"), col = "grey40", cex = 0.6, adj = 1)
-    rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4],
-         col = "#f8f9fa", border = NA)
     abline(v = c(6, 9, 12, 15, 18), col = "#dee2e6", lty = 1, lwd = 0.5)
-    abline(h = threshold, lty = 3, col = "grey50", lwd = 1.2)
+    abline(h = seq(0, ceiling(y_max), by = 0.5), col = "#dee2e6", lty = 1, lwd = 0.4)
+    abline(h = threshold, lty = 3, col = "grey50", lwd = 1.4)
+    text(24, threshold + y_max * 0.04, paste0(threshold, " kPa"),
+         col = "grey40", cex = 0.58, adj = 1)
 
     for (win in c("Early","Mid","Late")) {
       for (stg in c("Vegetative","Reproductive")) {
@@ -406,36 +414,38 @@ plot_vpd_diurnal <- function(vpd_prof, threshold = 2.0) {
         if (nrow(d) == 0) next
         d <- d[order(d$Hour), ]
         lines(d$Hour, d$VPD, col = win_cols[win], lty = stg_lty[stg], lwd = 1.8)
-        # Add a marker every 4 hours
-        idx_mk <- seq(4, 24, by = 6)
-        points(d$Hour[idx_mk], d$VPD[idx_mk],
-               col = win_cols[win], pch = stg_pch[stg], cex = 0.7)
+        idx_mk <- c(8, 14, 20)
+        pts <- d$Hour %in% idx_mk
+        points(d$Hour[pts], d$VPD[pts],
+               col = win_cols[win], pch = stg_pch[stg], cex = 0.75)
       }
     }
-    title(main = loc, cex.main = 0.88, font.main = 2, col.main = "#1a5276")
   }
 
-  # Global legend (drawn in last empty panel or outside)
+  # Legend panel (cell 11, bottom-right)
+  par(mar = c(1, 1, 1, 1))
   plot.new()
-  legend("topleft",
-         legend = c("Early – Veg.", "Early – Repro.",
-                    "Mid   – Veg.", "Mid   – Repro.",
-                    "Late  – Veg.", "Late  – Repro.",
-                    paste0("VPDcr = ", threshold, " kPa")),
+  legend("center",
+         legend = c("Early — Vegetative", "Early — Reproductive",
+                    "Mid   — Vegetative", "Mid   — Reproductive",
+                    "Late  — Vegetative", "Late  — Reproductive",
+                    paste0(threshold, " kPa threshold")),
          col    = c(win_cols["Early"], win_cols["Early"],
                     win_cols["Mid"],   win_cols["Mid"],
                     win_cols["Late"],  win_cols["Late"],
                     "grey50"),
-         lty    = c(1, 2, 1, 2, 1, 2, 3),
+         lty    = c(stg_lty["Vegetative"], stg_lty["Reproductive"],
+                    stg_lty["Vegetative"], stg_lty["Reproductive"],
+                    stg_lty["Vegetative"], stg_lty["Reproductive"], 3),
          pch    = c(stg_pch["Vegetative"], stg_pch["Reproductive"],
                     stg_pch["Vegetative"], stg_pch["Reproductive"],
                     stg_pch["Vegetative"], stg_pch["Reproductive"], NA),
-         lwd    = c(rep(1.8, 6), 1.2),
-         cex    = 0.82, bty = "n", pt.cex = 0.8,
-         title  = "Planting – Stage", title.cex = 0.8)
+         lwd    = c(rep(1.8, 6), 1.4),
+         cex    = 0.85, bty = "n", pt.cex = 0.9,
+         title  = "Planting window — Stage", title.cex = 0.88)
 
   mtext("Mean Diurnal VPD Profile by Location, Planting Window, and Growth Stage",
-        outer = TRUE, cex = 1.0, font = 2, col = "#1a5276")
+        outer = TRUE, cex = 1.0, font = 2, col = "#1a5276", line = 1.5)
 }
 
 
@@ -630,13 +640,31 @@ generate_report <- function(results_file = NULL, out_html = NULL) {
   names(water_tbl) <- c("Location","CRAIN (mm)","CTR (mm)","CE (mm)",
                          "CDRAIN (mm)","CRUNOF (mm)","ET (mm)","E/ET (%)")
 
+  # Maturity status: phenological durations and maturity type counts
   mat_rows <- lapply(locations, function(loc) {
-    r <- by_loc[[loc]]
-    c(loc, nrow(r), sum(r$MATYP==1,na.rm=TRUE),
-      sum(r$MATYP==2,na.rm=TRUE), sum(r$MATYP==5,na.rm=TRUE))
+    r   <- by_loc[[loc]]
+    emr <- as.numeric(r$dtEMR)
+    r3  <- as.numeric(r$R3) - emr        # emergence → R3 (vegetative)
+    r7  <- as.numeric(r$R7) - as.numeric(r$R3)  # R3 → R7 (reproductive)
+    tot <- as.numeric(r$R7) - emr        # emergence → R7 total
+    c(loc,
+      fnum(emr, 0),
+      fnum(r3,  0),
+      fnum(r7,  0),
+      fnum(tot, 0),
+      sum(r$MATYP==1,na.rm=TRUE),
+      sum(r$MATYP==2,na.rm=TRUE),
+      sum(r$MATYP==5,na.rm=TRUE))
   })
   mat_tbl <- as.data.frame(do.call(rbind, mat_rows), stringsAsFactors = FALSE)
-  names(mat_tbl) <- c("Location","Total","Normal (1)","Premature (2)","Flood kill (5)")
+  names(mat_tbl) <- c("Location",
+                       "Emerg. (days)",
+                       "Veg. Emerg→R3 (days)",
+                       "Repro. R3→R7 (days)",
+                       "Total Emerg→R7 (days)",
+                       "Normal mat.",
+                       "Premature",
+                       "Flood kill")
 
   env_rows <- lapply(locations, function(loc) {
     r <- by_loc[[loc]]
@@ -703,10 +731,10 @@ length(years), fig_b) else ""
 <p>
   Hourly VPD was computed for each simulation day using the same model equations
   (Spitters solar geometry, asymmetric sinusoidal temperature curve, Magnus–Tetens VP formula).
-  Days were classified as <strong>vegetative</strong> (sowing → R5) or
-  <strong>reproductive</strong> (R5 → R7) using the actual phenology of each
-  simulation year. Mean profiles average over all 30 years and are shown for the
-  <em>check</em> cultivar (same phenology as LT cultivars).
+  Days were classified as <strong>vegetative</strong> (emergence → R3 beginning pod) or
+  <strong>reproductive</strong> (R3 → R7 physiological maturity) using the actual
+  phenology of each simulation year. Mean profiles average over all 30 years and
+  are shown for the <em>check</em> cultivar (same phenology as LT cultivars).
 </p>
 <div class="note">
   The <strong>2.0 kPa threshold</strong> (dotted horizontal line) represents the VPDcr of
@@ -714,9 +742,9 @@ length(years), fig_b) else ""
   DM production penalties in LT cultivars.
 </div>
 <figure><img src="%s" style="max-width:100%%;border-radius:6px;border:1px solid #dee2e6">
-<figcaption>Figure 3 — Mean diurnal VPD profiles by location, planting window (colour)
-and growth stage (solid = vegetative, dashed = reproductive).
-Markers at hours 4, 10, 16, 22. Dotted horizontal line = VPDcr 2.0 kPa.</figcaption></figure>
+<figcaption>Figure 3 — Mean diurnal VPD profiles by location, planting window (colour:
+green = Early, orange = Mid, red = Late) and growth stage (solid = vegetative emergence→R3,
+dashed = reproductive R3→R7). Dotted horizontal line = VPDcr 2.0 kPa.</figcaption></figure>
 
 <h3>Table: Mean hours per day with VPD &gt; 2 kPa</h3>
 <p>Averaged over the entire growing season (sowing → R7) for each location × planting window.
@@ -873,10 +901,14 @@ CDRAIN = deep drainage · CRUNOF = runoff.</div>
 %s
 
 <!-- 7. Maturity Status -->
-<h2 id="maturity">7. Maturity Status</h2>
+<h2 id="maturity">7. Maturity Status and Phenological Duration</h2>
 <div class="card"><p>
-  <span class="badge bg">1 — Normal</span>&nbsp;
-  <span class="badge bo">2 — Premature</span>&nbsp;
+  Season length from emergence to physiological maturity (R7) split into
+  <strong>vegetative phase</strong> (emergence → R3 beginning pod) and
+  <strong>reproductive phase</strong> (R3 → R7). Values are mean ± SD across all
+  scenarios and years per location.
+  Maturity type counts: <span class="badge bg">1 — Normal</span>&nbsp;
+  <span class="badge bo">2 — Premature senescence</span>&nbsp;
   <span class="badge br">5 — Flood kill</span>
 </p></div>
 %s
