@@ -374,86 +374,92 @@ compute_vpd_profiles <- function(df, loc_info, weather_dir) {
 
 
 # =============================================================================
-# VPD FIGURE: diurnal VPD profiles per location
+# VPD FIGURE: one PNG per location, 3 panels (sowing dates) × 2 lines (stages)
+# Saves to daily_dir; returns named vector of file paths.
 # =============================================================================
 
-plot_vpd_diurnal <- function(vpd_prof, threshold = 2.0) {
-  locs <- unique(vpd_prof$Location)
-  n    <- length(locs)
+plot_vpd_diurnal <- function(vpd_prof, daily_dir, threshold = 2.0) {
+  locs <- sort(unique(vpd_prof$Location))
 
-  win_cols <- c(Early = "#1e8449", Mid = "#d35400", Late = "#c0392b")
-  stg_lty  <- c(Vegetative = 1, Reproductive = 2)
-  stg_pch  <- c(Vegetative = 19, Reproductive = 17)
+  stg_cols <- c(Vegetative = "#2e86c1", Reproductive = "#e74c3c")
+  stg_lty  <- c(Vegetative = 1,         Reproductive = 2)
+  stg_pch  <- c(Vegetative = 19,        Reproductive = 17)
+  wins     <- c("Early", "Mid", "Late")
+  win_labs <- c(Early = "Early planting", Mid = "Mid planting", Late = "Late planting")
 
-  # 10 data panels + 1 legend panel arranged in 3 rows × 4 cols (12 cells)
-  # legend spans cells 11-12 (bottom-right two cells)
-  lay_mat <- matrix(c(1:10, 11, 11), nrow = 3, byrow = TRUE)
-  layout(lay_mat, widths = rep(1, 4), heights = rep(1, 3))
-  par(mar = c(3.5, 3.5, 2.5, 0.8),
-      oma = c(1, 1, 3.5, 1),
-      bg = "white", fg = "#333333", col.axis = "#333333", col.lab = "#333333")
+  y_max <- max(vpd_prof$VPD, na.rm = TRUE) * 1.12
 
-  y_max <- max(vpd_prof$VPD, na.rm = TRUE) * 1.1
+  dir.create(daily_dir, recursive = TRUE, showWarnings = FALSE)
+  paths <- character(length(locs))
+  names(paths) <- locs
 
   for (loc in locs) {
-    sub <- vpd_prof[vpd_prof$Location == loc, ]
-    plot(NA, xlim = c(1, 24), ylim = c(0, y_max),
-         xlab = "Hour of day", ylab = "Mean VPD (kPa)",
-         xaxt = "n", cex.axis = 0.75, cex.lab = 0.78,
-         main = loc, cex.main = 0.88, font.main = 2, col.main = "#1a5276")
-    axis(1, at = c(6, 9, 12, 15, 18, 21), cex.axis = 0.72)
-    abline(v = c(6, 9, 12, 15, 18), col = "#dee2e6", lty = 1, lwd = 0.5)
-    abline(h = seq(0, ceiling(y_max), by = 0.5), col = "#dee2e6", lty = 1, lwd = 0.4)
-    abline(h = threshold, lty = 3, col = "grey50", lwd = 1.4)
-    text(24, threshold + y_max * 0.04, paste0(threshold, " kPa"),
-         col = "grey40", cex = 0.58, adj = 1)
+    sub  <- vpd_prof[vpd_prof$Location == loc, ]
+    safe <- gsub("[^A-Za-z0-9_]", "_", loc)
+    fpath <- file.path(daily_dir, paste0("VPD_diurnal_", safe, ".png"))
 
-    for (win in c("Early","Mid","Late")) {
-      for (stg in c("Vegetative","Reproductive")) {
-        d <- sub[sub$PlantWin == win & sub$Stage == stg, ]
+    png(fpath, width = 1400, height = 500, res = 130)
+    par(mfrow = c(1, 3),
+        mar   = c(4, 4, 3, 1),
+        oma   = c(0, 0, 3.5, 0),
+        bg    = "white", fg = "#333333",
+        col.axis = "#333333", col.lab = "#333333")
+
+    for (win in wins) {
+      wsub <- sub[sub$PlantWin == win, ]
+      plot(NA, xlim = c(1, 24), ylim = c(0, y_max),
+           xlab = "Hour of day", ylab = "Mean VPD (kPa)",
+           xaxt = "n", cex.axis = 0.78, cex.lab = 0.82,
+           main = win_labs[win], cex.main = 0.92, font.main = 2,
+           col.main = "#1a5276")
+      axis(1, at = c(6, 9, 12, 15, 18, 21), cex.axis = 0.75)
+      abline(v = c(6, 9, 12, 15, 18), col = "#e0e0e0", lty = 1, lwd = 0.5)
+      abline(h = seq(0, ceiling(y_max * 2) / 2, by = 0.5),
+             col = "#e0e0e0", lty = 1, lwd = 0.4)
+      abline(h = threshold, lty = 3, col = "grey40", lwd = 1.5)
+      text(23.5, threshold + y_max * 0.04, paste0(threshold, " kPa"),
+           col = "grey40", cex = 0.62, adj = 1)
+
+      for (stg in c("Vegetative", "Reproductive")) {
+        d <- wsub[wsub$Stage == stg, ]
         if (nrow(d) == 0) next
         d <- d[order(d$Hour), ]
-        lines(d$Hour, d$VPD, col = win_cols[win], lty = stg_lty[stg], lwd = 1.8)
-        idx_mk <- c(8, 14, 20)
-        pts <- d$Hour %in% idx_mk
+        lines(d$Hour, d$VPD, col = stg_cols[stg], lty = stg_lty[stg], lwd = 2)
+        pts <- d$Hour %in% c(8, 13, 18)
         points(d$Hour[pts], d$VPD[pts],
-               col = win_cols[win], pch = stg_pch[stg], cex = 0.75)
+               col = stg_cols[stg], pch = stg_pch[stg], cex = 0.85)
+      }
+
+      # Legend only in first panel
+      if (win == "Early") {
+        legend("topleft",
+               legend = c("Vegetative (emerg→R3)", "Reproductive (R3→R7)",
+                          paste0(threshold, " kPa threshold")),
+               col    = c(stg_cols["Vegetative"], stg_cols["Reproductive"], "grey40"),
+               lty    = c(stg_lty["Vegetative"],  stg_lty["Reproductive"],  3),
+               pch    = c(stg_pch["Vegetative"],  stg_pch["Reproductive"],  NA),
+               lwd    = c(2, 2, 1.5), cex = 0.72, bty = "n", pt.cex = 0.85)
       }
     }
+
+    mtext(paste0("Mean Diurnal VPD Profile — ", loc),
+          outer = TRUE, cex = 1.0, font = 2, col = "#1a5276", line = 1.5)
+    dev.off()
+    paths[loc] <- fpath
   }
 
-  # Legend panel (cell 11, bottom-right)
-  par(mar = c(1, 1, 1, 1))
-  plot.new()
-  legend("center",
-         legend = c("Early — Vegetative", "Early — Reproductive",
-                    "Mid   — Vegetative", "Mid   — Reproductive",
-                    "Late  — Vegetative", "Late  — Reproductive",
-                    paste0(threshold, " kPa threshold")),
-         col    = c(win_cols["Early"], win_cols["Early"],
-                    win_cols["Mid"],   win_cols["Mid"],
-                    win_cols["Late"],  win_cols["Late"],
-                    "grey50"),
-         lty    = c(stg_lty["Vegetative"], stg_lty["Reproductive"],
-                    stg_lty["Vegetative"], stg_lty["Reproductive"],
-                    stg_lty["Vegetative"], stg_lty["Reproductive"], 3),
-         pch    = c(stg_pch["Vegetative"], stg_pch["Reproductive"],
-                    stg_pch["Vegetative"], stg_pch["Reproductive"],
-                    stg_pch["Vegetative"], stg_pch["Reproductive"], NA),
-         lwd    = c(rep(1.8, 6), 1.4),
-         cex    = 0.85, bty = "n", pt.cex = 0.9,
-         title  = "Planting window — Stage", title.cex = 0.88)
-
-  mtext("Mean Diurnal VPD Profile by Location, Planting Window, and Growth Stage",
-        outer = TRUE, cex = 1.0, font = 2, col = "#1a5276", line = 1.5)
+  invisible(paths)
 }
 
 
 # =============================================================================
-# VPD THRESHOLD TABLES
+# VPD THRESHOLD TABLES — fixed April–September window (DOY 91–273)
+# Cumulative hours and days with VPD > threshold, mean ± SD across years.
 # =============================================================================
 
-compute_vpd_tables <- function(df, loc_info, weather_dir, threshold = 2.0) {
+compute_vpd_tables <- function(df, loc_info, weather_dir, threshold = 2.0,
+                                doy_start = 91L, doy_end = 273L) {
+  # Use all years from the simulation period (one entry per year per location)
   sub <- df[!grepl("LT", df$Crop, ignore.case = FALSE), ]
 
   win_label <- function(m) {
@@ -479,48 +485,48 @@ compute_vpd_tables <- function(df, loc_info, weather_dir, threshold = 2.0) {
     wth     <- read_wth(wpath)
     vpd_mat <- compute_vpd_matrix(wth, lat, vpdf)
 
-    loc_sub <- sub[sub$Location == loc, ]
+    # Fixed April-September window: same DOY range every year
+    all_years <- sort(unique(as.integer(wth$YEAR)))
 
+    # Compute cumulative hours and days per year (location-level, year fixed window)
+    cum_h_yr <- sapply(all_years, function(yr) {
+      idx <- which(as.integer(wth$YEAR) == yr &
+                   as.integer(wth$DOY) >= doy_start &
+                   as.integer(wth$DOY) <= doy_end)
+      if (length(idx) == 0) return(NA_real_)
+      vpd_w <- vpd_mat[idx, , drop = FALSE]
+      sum(vpd_w > threshold)   # total hours above threshold
+    })
+    cum_d_yr <- sapply(all_years, function(yr) {
+      idx <- which(as.integer(wth$YEAR) == yr &
+                   as.integer(wth$DOY) >= doy_start &
+                   as.integer(wth$DOY) <= doy_end)
+      if (length(idx) == 0) return(NA_real_)
+      vpd_w <- vpd_mat[idx, , drop = FALSE]
+      sum(rowSums(vpd_w > threshold) > 0)  # days with any hour above threshold
+    })
+
+    loc_sub <- sub[sub$Location == loc, ]
     row_h <- list(Location = loc)
     row_d <- list(Location = loc)
 
     for (win in c("Early","Mid","Late")) {
-      win_sub <- loc_sub[loc_sub$PlantWin == win, ]
-      if (nrow(win_sub) == 0) {
-        row_h[[win]] <- "—"
-        row_d[[win]] <- "—"
-        next
-      }
+      # Same fixed-window stats for every planting date (window doesn't affect the table)
+      # But keep per-sowing-date column structure as before
+      win_sub  <- loc_sub[loc_sub$PlantWin == win, ]
+      sim_yrs  <- if (nrow(win_sub) > 0) unique(as.integer(win_sub$Pyear)) else all_years
 
-      hours_per_day_acc <- numeric(0)
-      days_above_acc    <- numeric(0)
+      h_vals <- cum_h_yr[all_years %in% sim_yrs]
+      d_vals <- cum_d_yr[all_years %in% sim_yrs]
+      h_vals <- h_vals[!is.na(h_vals)]
+      d_vals <- d_vals[!is.na(d_vals)]
 
-      for (k in seq_len(nrow(win_sub))) {
-        row    <- win_sub[k, ]
-        yr     <- as.integer(row$Pyear)
-        Pdoy   <- as.integer(row$Pdoy)
-        R7_dap <- as.integer(row$R7)
-        if (is.na(R7_dap) || R7_dap <= 0) next
-
-        season_doys <- seq(Pdoy, Pdoy + R7_dap - 1)
-        idx <- which(as.integer(wth$YEAR) == yr & as.integer(wth$DOY) %in% season_doys)
-        if (length(idx) == 0) next
-
-        vpd_season <- vpd_mat[idx, , drop = FALSE]   # rows=days, cols=hours
-        above_thr  <- vpd_season > threshold
-
-        # Hours per day above threshold (mean over season days)
-        hours_per_day_acc <- c(hours_per_day_acc, rowSums(above_thr))
-        # Days above threshold this year
-        days_above_acc    <- c(days_above_acc, sum(rowSums(above_thr) > 0))
-      }
-
-      row_h[[win]] <- if (length(hours_per_day_acc))
-        sprintf("%.1f ± %.1f", mean(hours_per_day_acc), sd(hours_per_day_acc))
+      row_h[[win]] <- if (length(h_vals))
+        sprintf("%.0f ± %.0f", mean(h_vals), sd(h_vals))
       else "—"
 
-      row_d[[win]] <- if (length(days_above_acc))
-        sprintf("%.0f ± %.0f", mean(days_above_acc), sd(days_above_acc))
+      row_d[[win]] <- if (length(d_vals))
+        sprintf("%.0f ± %.0f", mean(d_vals), sd(d_vals))
       else "—"
     }
 
@@ -682,7 +688,7 @@ generate_report <- function(results_file = NULL, out_html = NULL) {
   fig_a <- make_plot_b64(function() plot_env_season(df), width = 1500, height = 900, res = 130)
 
   # Figures B & VPD: require weather files
-  fig_b  <- NULL; fig_vpd <- NULL
+  fig_b  <- NULL; vpd_fig_paths <- NULL
   tbl_vpd_h <- NULL; tbl_vpd_d <- NULL
 
   if (has_weather) {
@@ -693,9 +699,8 @@ generate_report <- function(results_file = NULL, out_html = NULL) {
     cat("  Computing hourly VPD profiles (this may take a moment)...\n")
     vpd_prof <- compute_vpd_profiles(df, loc_info, WEATHER_DIR)
 
-    cat("  Figure VPD: Diurnal VPD curves\n")
-    fig_vpd <- make_plot_b64(function() plot_vpd_diurnal(vpd_prof, threshold = 2.0),
-                             width = 1800, height = 700, res = 130)
+    cat("  Figure VPD: Diurnal VPD curves (one PNG per location)\n")
+    vpd_fig_paths <- plot_vpd_diurnal(vpd_prof, DAILY_DIR, threshold = 2.0)
 
     cat("  Computing VPD threshold tables...\n")
     vpd_tbls   <- compute_vpd_tables(df, loc_info, WEATHER_DIR, threshold = 2.0)
@@ -726,44 +731,52 @@ generate_report <- function(results_file = NULL, out_html = NULL) {
 <figcaption>Figure 2 — Monthly climatology (mean over all simulation years).</figcaption></figure>',
 length(years), fig_b) else ""
 
-  vpd_sec <- if (!is.null(fig_vpd)) sprintf('
+  vpd_sec <- if (!is.null(vpd_fig_paths)) {
+    # Build one <figure> per location (base64-embedded)
+    figs_html <- paste(sapply(names(vpd_fig_paths), function(loc) {
+      b64 <- png_to_b64(vpd_fig_paths[loc])
+      sprintf('<figure><img src="%s" style="max-width:100%%;border-radius:6px;border:1px solid #dee2e6">
+<figcaption>Figure 3 (%s) — Mean diurnal VPD profile by sowing date (panels) and
+growth stage (blue solid = vegetative emergence→R3; red dashed = reproductive R3→R7).
+Dotted line = VPDcr 2.0 kPa.</figcaption></figure>', b64, loc)
+    }), collapse = "\n")
+
+    sprintf('
 <h2 id="vpd">8. Hourly VPD Analysis</h2>
 <p>
   Hourly VPD was computed for each simulation day using the same model equations
   (Spitters solar geometry, asymmetric sinusoidal temperature curve, Magnus–Tetens VP formula).
-  Days were classified as <strong>vegetative</strong> (emergence → R3 beginning pod) or
-  <strong>reproductive</strong> (R3 → R7 physiological maturity) using the actual
-  phenology of each simulation year. Mean profiles average over all 30 years and
-  are shown for the <em>check</em> cultivar (same phenology as LT cultivars).
+  Days were classified as <strong>vegetative</strong> (emergence → R3) or
+  <strong>reproductive</strong> (R3 → R7) using the actual phenology of each simulation year.
+  Mean profiles are averaged over all 30 simulation years (check cultivar).
 </p>
 <div class="note">
-  The <strong>2.0 kPa threshold</strong> (dotted horizontal line) represents the VPDcr of
-  the LT2 cultivar. Hours or days above this threshold drive stomatal restriction and
-  DM production penalties in LT cultivars.
+  The <strong>2.0 kPa threshold</strong> (dotted line) corresponds to the VPDcr of the LT2
+  cultivar. Hours or days above this threshold drive stomatal restriction and DM production
+  penalties in LT cultivars. Individual PNG files are saved to
+  <code>outputs/results/daily/</code>.
 </div>
-<figure><img src="%s" style="max-width:100%%;border-radius:6px;border:1px solid #dee2e6">
-<figcaption>Figure 3 — Mean diurnal VPD profiles by location, planting window (colour:
-green = Early, orange = Mid, red = Late) and growth stage (solid = vegetative emergence→R3,
-dashed = reproductive R3→R7). Dotted horizontal line = VPDcr 2.0 kPa.</figcaption></figure>
-
-<h3>Table: Mean hours per day with VPD &gt; 2 kPa</h3>
-<p>Averaged over the entire growing season (sowing → R7) for each location × planting window.
-Values shown as mean ± SD across the 30 simulation years.</p>
 %s
 
-<h3>Table: Mean days per season with VPD &gt; 2 kPa</h3>
-<p>A day is counted if at least one daylight hour exceeds 2 kPa.
-Values show mean ± SD across 30 years.</p>
+<h3>Table: Cumulative hours with VPD &gt; 2 kPa per season (April–September)</h3>
+<p>Total hours above 2 kPa summed over the fixed April–September window (DOY 91–273)
+to allow fair cross-location comparison. Values: mean ± SD across the 30 simulation years.</p>
+%s
+
+<h3>Table: Cumulative days with VPD &gt; 2 kPa per season (April–September)</h3>
+<p>A day is counted if at least one daylight hour exceeds 2 kPa (DOY 91–273 window).
+Values: mean ± SD across 30 years.</p>
 %s',
-  fig_vpd,
-  df_to_html(tbl_vpd_h, cls = "tbl"),
-  df_to_html(tbl_vpd_d, cls = "tbl")) else ""
+    figs_html,
+    df_to_html(tbl_vpd_h, cls = "tbl"),
+    df_to_html(tbl_vpd_d, cls = "tbl"))
+  } else ""
 
   loc_list  <- paste(sprintf("<li>%s</li>", locations), collapse = "")
   scen_list <- paste(sprintf('<span class="badge bg">%s</span>', managements), collapse = " ")
   crop_list <- paste(sprintf('<span class="badge bo">%s</span>', crops), collapse = " ")
 
-  toc_vpd   <- if (!is.null(fig_vpd)) '<a href="#vpd">8. VPD analysis</a>' else ""
+  toc_vpd   <- if (!is.null(vpd_fig_paths)) '<a href="#vpd">8. VPD analysis</a>' else ""
   toc_daily <- if (has_daily) '<a href="#daily">9. Daily output</a>' else ""
 
   CSS <- "
