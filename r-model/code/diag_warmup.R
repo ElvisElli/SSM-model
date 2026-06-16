@@ -31,8 +31,8 @@ run_with_warmup <- function(scenario_name, year, wth_file_name, soil_key) {
   if (warmup_yr %in% wth$YEAR) {
     wu <- run_ssm_year(scn, wth, soil, warmup_yr, verbose = FALSE, init_ftswrz = 0)
     prev_ftswrz <- wu$final_ftswrz
-    cat(sprintf("  Warm-up year %d: final_ftswrz=%.4f final_ftswrz_shallow=%.4f WGRN=%.2f\n",
-                warmup_yr, wu$final_ftswrz, wu$final_ftswrz_shallow, wu$summary$WGRN))
+    cat(sprintf("  Warm-up year %d: final_ftswrz=%.4f WGRN=%.2f\n",
+                warmup_yr, wu$final_ftswrz, wu$summary$WGRN))
   }
 
   res <- run_ssm_year(scn, wth, soil, year, verbose = TRUE, init_ftswrz = prev_ftswrz)

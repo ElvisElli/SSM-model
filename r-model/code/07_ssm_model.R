@@ -371,28 +371,8 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE, init_ftswrz
     NULL
   }
 
-  # Compute shallow-root-zone FTSWRZ for carry-over to the next year.
-  # VBA carries FTSWRZ computed from the sowing-depth root zone (initial DEPORT),
-  # not the full deep root zone at season end. This determines stage-1 vs stage-2
-  # evaporation on the first day of the next year's simulation.
-  DEPORT_init <- as.numeric(scn$DEPORT)
-  ATSWRZ_sh <- 0; TTSWRZ_sh <- 0; DPTOP <- 0
-  DLYER_v <- soil$layers$DLYER
-  TTSW_v  <- (soil$layers$DUL - soil$layers$LL) * DLYER_v
-  for (L in seq_len(soil$meta$NLYER)) {
-    RLYER_L <- min(max(DEPORT_init - DPTOP, 0), DLYER_v[L])
-    if (RLYER_L > 0) {
-      rf        <- RLYER_L / DLYER_v[L]
-      ATSWRZ_sh <- ATSWRZ_sh + sw$ATSW[L] * rf
-      TTSWRZ_sh <- TTSWRZ_sh + TTSW_v[L]  * rf
-    }
-    DPTOP <- DPTOP + DLYER_v[L]
-  }
-  ftswrz_shallow <- if (TTSWRZ_sh > 0) ATSWRZ_sh / TTSWRZ_sh else 0
-
   list(summary = summary_row, daily = daily_df,
-       final_ftswrz         = sw$FTSWRZ,      # full root-zone FTSWRZ at maturity
-       final_ftswrz_shallow = ftswrz_shallow, # shallow root-zone FTSWRZ for carry-over
+       final_ftswrz = sw$FTSWRZ,
        layer_state = list(
          iATSW = sw$iATSW, iFTSW = sw$iFTSW,
          fATSW = sw$ATSW,  fFTSW = sw$FTSW
