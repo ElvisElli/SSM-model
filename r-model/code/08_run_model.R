@@ -3,14 +3,17 @@
 # =============================================================================
 # Runs the SSM model for all 10 locations × 24 scenarios × 30 years.
 # Reads inputs from the r-model/inputs/ directory and writes results to
-# r-model/outputs/results/.
+# r-model/outputs/results/         (yearly summaries)
+# r-model/outputs/results/daily/   (daily time-step data, when save_daily=TRUE)
 #
 # Usage:
-#   Rscript 08_run_model.R
+#   Rscript 08_run_model.R                          # yearly only
+#   Rscript 08_run_model.R --daily                  # yearly + daily CSVs
 #
 # Or from R console:
 #   source("08_run_model.R")
-#   results <- run_all_scenarios()
+#   results <- run_all_scenarios()                  # yearly only
+#   results <- run_all_scenarios(save_daily = TRUE) # yearly + daily CSVs
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -106,7 +109,9 @@ run_all_scenarios <- function(scenarios_file = NULL, save_daily = FALSE) {
   soil_cache    <- list()
 
   all_rows   <- list()   # collects every yearly summary row in run order
+  daily_rows <- list()   # collects daily rows when save_daily=TRUE
   result_idx <- 0
+  daily_idx  <- 0
 
   # Single global FTSWRZ that flows across ALL scenario-years in CSV row order,
   # matching the un-reset VBA module-level variable. Starts at 0 (Double default).
@@ -162,9 +167,25 @@ run_all_scenarios <- function(scenarios_file = NULL, save_daily = FALSE) {
       )
 
       if (!is.null(result)) {
-        result_idx         <- result_idx + 1
+        result_idx             <- result_idx + 1
         all_rows[[result_idx]] <- result$summary
-        global_ftswrz      <- result$final_ftswrz
+        global_ftswrz          <- result$final_ftswrz
+
+        # Collect daily rows — prepend identifier columns
+        if (save_daily && !is.null(result$daily) && nrow(result$daily) > 0) {
+          d <- result$daily
+          d$sName    <- scn$scenario
+          d$Location <- scn$loc_name
+          d$Manag    <- scn$manag_name
+          d$Soil     <- scn$soil_name
+          d$Crop     <- scn$crop_name
+          d$Pyear    <- yr
+          # Move identifier columns to front
+          id_cols <- c("sName", "Location", "Manag", "Soil", "Crop", "Pyear")
+          d <- d[, c(id_cols, setdiff(names(d), id_cols))]
+          daily_idx             <- daily_idx + 1
+          daily_rows[[daily_idx]] <- d
+        }
       }
     }
   }
@@ -176,24 +197,45 @@ run_all_scenarios <- function(scenarios_file = NULL, save_daily = FALSE) {
 
   all_df <- do.call(rbind, all_rows)
 
-  # Save per-location CSVs and one combined file
-  for (loc in unique(all_df$loc_name)) {
-    loc_df   <- all_df[all_df$loc_name == loc, ]
+  # ── Save per-location yearly CSVs and one combined file ──────────────────
+  for (loc in unique(all_df$Location)) {
+    loc_df   <- all_df[all_df$Location == loc, ]
     out_file <- file.path(OUTPUT_DIR, paste0(gsub(" ", "_", loc), "_results.csv"))
     write.csv(loc_df, out_file, row.names = FALSE)
-    cat(sprintf("  Saved %d rows to %s\n", nrow(loc_df), basename(out_file)))
+    cat(sprintf("  Saved %d yearly rows → %s\n", nrow(loc_df), basename(out_file)))
   }
 
   all_file <- file.path(OUTPUT_DIR, "all_results.csv")
   write.csv(all_df, all_file, row.names = FALSE)
-  cat(sprintf("\nAll results saved: %d rows to %s\n", nrow(all_df), all_file))
-  return(all_df)
+  cat(sprintf("\nYearly results: %d rows → %s\n", nrow(all_df), basename(all_file)))
+
+  # ── Save daily CSVs (when save_daily = TRUE) ─────────────────────────────
+  if (save_daily && daily_idx > 0) {
+    daily_dir <- file.path(OUTPUT_DIR, "daily")
+    dir.create(daily_dir, recursive = TRUE, showWarnings = FALSE)
+
+    daily_df <- do.call(rbind, daily_rows)
+
+    for (loc in unique(daily_df$Location)) {
+      loc_daily <- daily_df[daily_df$Location == loc, ]
+      out_file  <- file.path(daily_dir, paste0(gsub(" ", "_", loc), "_daily.csv"))
+      write.csv(loc_daily, out_file, row.names = FALSE)
+      cat(sprintf("  Saved %d daily rows  → %s\n", nrow(loc_daily), basename(out_file)))
+    }
+
+    all_daily_file <- file.path(daily_dir, "all_daily.csv")
+    write.csv(daily_df, all_daily_file, row.names = FALSE)
+    cat(sprintf("\nDaily results:  %d rows → %s\n", nrow(daily_df), basename(all_daily_file)))
+  }
+
+  invisible(all_df)
 }
 
 # Run if called directly (not when sourced from another script)
 if (!interactive()) {
+  save_daily_flag <- "--daily" %in% commandArgs(trailingOnly = TRUE)
   t_start <- proc.time()
-  results  <- run_all_scenarios()
+  results  <- run_all_scenarios(save_daily = save_daily_flag)
   t_end    <- proc.time()
   cat(sprintf("\nTotal run time: %.1f seconds\n", (t_end - t_start)["elapsed"]))
 }

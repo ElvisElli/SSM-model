@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSM Soybean — Simulation Report</title>
+<style>
+  :root {
+    --primary: #1a5276; --accent: #2e86c1; --green: #1e8449;
+    --orange: #d35400; --bg: #f8f9fa; --card: #ffffff;
+    --border: #dee2e6; --text: #212529; --muted: #6c757d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px;
+         color: var(--text); background: var(--bg); line-height: 1.65; }
+  #toc { position: fixed; top: 0; left: 0; width: 220px; height: 100vh;
+         overflow-y: auto; background: var(--primary); color: #cde; padding: 12px 0; z-index: 100; }
+  #toc h3 { padding: 10px 16px 6px; font-size: 11px; text-transform: uppercase;
+             letter-spacing: 1px; color: #acc; }
+  #toc a { display: block; padding: 5px 16px; font-size: 12px; color: #cde;
+            text-decoration: none; border-left: 3px solid transparent; }
+  #toc a:hover { background: rgba(255,255,255,.1); border-left-color: #5bc0de; color: #fff; }
+  main { margin-left: 220px; padding: 28px 44px 64px; max-width: 1080px; }
+  h1 { font-size: 1.9rem; color: var(--primary); border-bottom: 3px solid var(--accent);
+       padding-bottom: 8px; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 1.3rem; color: var(--primary); margin: 36px 0 12px;
+       border-left: 5px solid var(--accent); padding-left: 10px; }
+  h3 { font-size: 1.1rem; color: var(--accent); margin: 22px 0 8px; }
+  p  { margin-bottom: 8px; }
+  ul, ol { margin: 6px 0 10px 22px; }
+  li { margin-bottom: 3px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+          padding: 16px 20px; margin: 14px 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+               gap: 12px; margin: 14px 0; }
+  .stat-box  { background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+               padding: 14px 16px; text-align: center; }
+  .stat-val  { font-size: 2rem; font-weight: 700; color: var(--primary); }
+  .stat-lbl  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  table.tbl  { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 12px 0; }
+  table.tbl th { background: var(--primary); color: white; padding: 7px 10px;
+                 text-align: left; font-weight: 600; }
+  table.tbl td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  table.tbl tr:nth-child(even) td { background: #f2f6fb; }
+  table.tbl tr:hover td { background: #e8f4fd; }
+  code { background: #f1f3f4; padding: 1px 4px; border-radius: 3px; font-size: 92%; }
+  .note { background: #eaf7fb; border-left: 4px solid var(--accent);
+          padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12;
+          padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px;
+           font-weight: 600; }
+  .badge-green  { background: #d5f5e3; color: var(--green); }
+  .badge-orange { background: #fdebd0; color: var(--orange); }
+  .badge-red    { background: #fadbd8; color: #c0392b; }
+</style>
+</head>
+<body>
+<nav id="toc">
+  <h3>Report</h3>
+  <a href="#overview">1. Overview</a>
+  <a href="#locations">2. Locations</a>
+  <a href="#scenarios">3. Scenarios</a>
+  <a href="#yield">4. Yield &amp; Biomass</a>
+  <a href="#phenology">5. Phenology</a>
+  <a href="#water">6. Water balance</a>
+  <a href="#maturity">7. Maturity status</a>
+  
+</nav>
+<main>
+<h1>SSM Soybean Model — Simulation Report</h1>
+<p class="subtitle">Generated: 2026-06-16 14:03 &nbsp;|&nbsp; Results file: <code>all_results.csv</code></p>
+
+<!-- ── 1. OVERVIEW ─────────────────────────────────────────────────── -->
+<h2 id="overview">1. Overview</h2>
+<div class="stat-grid">
+  <div class="stat-box"><div class="stat-val">240</div><div class="stat-lbl">Scenarios</div></div>
+  <div class="stat-box"><div class="stat-val">10</div><div class="stat-lbl">Locations</div></div>
+  <div class="stat-box"><div class="stat-val">30</div><div class="stat-lbl">Years</div></div>
+  <div class="stat-box"><div class="stat-val">7,200</div><div class="stat-lbl">Sim. years total</div></div>
+  <div class="stat-box"><div class="stat-val">18</div><div class="stat-lbl">Managements</div></div>
+  <div class="stat-box"><div class="stat-val">8</div><div class="stat-lbl">Cultivars</div></div>
+</div>
+<div class="note">
+  Year range simulated: <strong>1990 – 2019</strong>.
+  Normal maturity: <strong>3,157 (43.8%)</strong> &nbsp;|&nbsp;
+  Premature senescence: <strong>0 (0.0%)</strong> &nbsp;|&nbsp;
+  Flood kill: <strong>0 (0.0%)</strong>.
+</div>
+
+<!-- ── 2. LOCATIONS ────────────────────────────────────────────────── -->
+<h2 id="locations">2. Locations</h2>
+<div class="card">
+  <p>10 locations were simulated. Climate-year range: <strong>1990 – 2019</strong> (30 years).</p>
+  <ul><li>Albany</li><li>Eustis</li><li>Jonesboro</li><li>Keiser</li><li>Lincoln</li><li>Marianna</li><li>Mount Vernon</li><li>North Platte</li><li>Novelty</li><li>Rohwer</li></ul>
+</div>
+<table class="tbl"><thead><tr><th>Location</th><th>Tmin (°C)</th><th>Tmax (°C)</th><th>SRAD (MJ/m²)</th><th>Rain (mm)</th><th>ET (mm)</th></tr></thead><tbody><tr><td>Albany</td><td>9.6</td><td>21.3</td><td>3,252</td><td>583</td><td>687</td></tr>
+<tr><td>Eustis</td><td>7.7</td><td>21.2</td><td>3,651</td><td>461</td><td>662</td></tr>
+<tr><td>Jonesboro</td><td>18.0</td><td>29.6</td><td>3,127</td><td>468</td><td>740</td></tr>
+<tr><td>Keiser</td><td>18.6</td><td>30.1</td><td>3,081</td><td>483</td><td>699</td></tr>
+<tr><td>Lincoln</td><td>9.3</td><td>22.4</td><td>3,430</td><td>484</td><td>695</td></tr>
+<tr><td>Marianna</td><td>18.9</td><td>30.3</td><td>3,030</td><td>431</td><td>736</td></tr>
+<tr><td>Mount Vernon</td><td>10.8</td><td>23.4</td><td>3,315</td><td>666</td><td>721</td></tr>
+<tr><td>North Platte</td><td>6.3</td><td>20.6</td><td>3,684</td><td>360</td><td>665</td></tr>
+<tr><td>Novelty</td><td>10.1</td><td>21.5</td><td>3,181</td><td>605</td><td>677</td></tr>
+<tr><td>Rohwer</td><td>19.8</td><td>31.0</td><td>2,919</td><td>406</td><td>675</td></tr></tbody></table>
+
+<!-- ── 3. SCENARIOS ────────────────────────────────────────────────── -->
+<h2 id="scenarios">3. Scenario Structure</h2>
+<div class="card">
+  <p>Each scenario is identified by a four-part key:
+  <strong>Location – Water regime – Planting window – Cultivar</strong>.</p>
+  <ul>
+    <li><strong>Water regime:</strong> RFD (rainfed), IRRI (irrigated)</li>
+    <li><strong>Planting window:</strong> ELY (early), MID (mid-season), LTE (late)</li>
+    <li><strong>Cultivar:</strong> check (standard, no LT trait), LT1.5 / LT2 / LT2.5 (limited transpiration VPDcr)</li>
+  </ul>
+</div>
+<h3>Managements simulated</h3>
+<span class="badge badge-green" style="margin:3px;">AR-IRRI-ELY</span> <span class="badge badge-green" style="margin:3px;">AR-IRRI-LTE</span> <span class="badge badge-green" style="margin:3px;">AR-IRRI-MID</span> <span class="badge badge-green" style="margin:3px;">AR-RFD-ELY</span> <span class="badge badge-green" style="margin:3px;">AR-RFD-LTE</span> <span class="badge badge-green" style="margin:3px;">AR-RFD-MID</span> <span class="badge badge-green" style="margin:3px;">MO-IRRI-ELY</span> <span class="badge badge-green" style="margin:3px;">MO-IRRI-LTE</span> <span class="badge badge-green" style="margin:3px;">MO-IRRI-MID</span> <span class="badge badge-green" style="margin:3px;">MO-RFD-ELY</span> <span class="badge badge-green" style="margin:3px;">MO-RFD-LTE</span> <span class="badge badge-green" style="margin:3px;">MO-RFD-MID</span> <span class="badge badge-green" style="margin:3px;">NE-IRRI-ELY</span> <span class="badge badge-green" style="margin:3px;">NE-IRRI-LTE</span> <span class="badge badge-green" style="margin:3px;">NE-IRRI-MID</span> <span class="badge badge-green" style="margin:3px;">NE-RFD-ELY</span> <span class="badge badge-green" style="margin:3px;">NE-RFD-LTE</span> <span class="badge badge-green" style="margin:3px;">NE-RFD-MID</span>
+<h3>Cultivars simulated</h3>
+<span class="badge badge-orange" style="margin:3px;">Soybean-LT1.5-MG3</span> <span class="badge badge-orange" style="margin:3px;">Soybean-LT1.5-MG4</span> <span class="badge badge-orange" style="margin:3px;">Soybean-LT2-MG3</span> <span class="badge badge-orange" style="margin:3px;">Soybean-LT2-MG4</span> <span class="badge badge-orange" style="margin:3px;">Soybean-LT2.5-MG3</span> <span class="badge badge-orange" style="margin:3px;">Soybean-LT2.5-MG4</span> <span class="badge badge-orange" style="margin:3px;">Soybean-MG3</span> <span class="badge badge-orange" style="margin:3px;">Soybean-MG4</span>
+
+<!-- ── 4. YIELD AND BIOMASS ─────────────────────────────────────────── -->
+<h2 id="yield">4. Yield and Biomass — by Location (mean ± SD, all scenarios/years)</h2>
+<p>Values represent all management types and cultivars combined. SD reflects year-to-year plus management-type variability.</p>
+<table class="tbl"><thead><tr><th>Location</th><th>N</th><th>Yield (kg/ha)</th><th>WTOP (g/m²)</th><th>MXLAI</th><th>HI</th><th>Season (days)</th><th>CTR (mm)</th><th>CE (mm)</th><th>CRAIN (mm)</th></tr></thead><tbody><tr><td>Albany</td><td>720</td><td>4,605 ± 1,601</td><td>1168.5 ± 377.6</td><td>14.7 ± 6.0</td><td>34.2 % ± 3.9 %</td><td>211.8 ± 20.7</td><td>448.1 ± 158.8</td><td>238.9 ± 99.7</td><td>582.6 ± 194.3</td></tr>
+<tr><td>Eustis</td><td>720</td><td>4,308 ± 2,190</td><td>1045.7 ± 443.7</td><td>9.4 ± 3.7</td><td>34.7 % ± 5.3 %</td><td>214.9 ± 22.5</td><td>422.4 ± 201.6</td><td>240.0 ± 106.8</td><td>461.4 ± 173.3</td></tr>
+<tr><td>Jonesboro</td><td>720</td><td>5,589 ± 2,837</td><td>1205.1 ± 474.1</td><td>12.2 ± 4.0</td><td>38.4 % ± 7.5 %</td><td>156.3 ± 20.6</td><td>508.6 ± 222.1</td><td>232.0 ± 110.4</td><td>470.5 ± 172.6</td></tr>
+<tr><td>Keiser</td><td>720</td><td>5,362 ± 3,045</td><td>1165.0 ± 517.9</td><td>11.7 ± 4.5</td><td>37.5 % ± 7.8 %</td><td>152.5 ± 20.2</td><td>479.0 ± 237.7</td><td>220.3 ± 98.3</td><td>487.4 ± 141.5</td></tr>
+<tr><td>Lincoln</td><td>720</td><td>4,671 ± 2,131</td><td>1058.0 ± 412.7</td><td>10.4 ± 4.0</td><td>37.5 % ± 5.7 %</td><td>209.6 ± 26.2</td><td>452.1 ± 199.0</td><td>243.0 ± 108.8</td><td>484.8 ± 147.8</td></tr>
+<tr><td>Marianna</td><td>720</td><td>5,623 ± 2,872</td><td>1219.0 ± 453.0</td><td>11.5 ± 3.2</td><td>38.0 % ± 8.0 %</td><td>147.2 ± 17.4</td><td>502.2 ± 209.3</td><td>234.8 ± 106.3</td><td>434.7 ± 166.0</td></tr>
+<tr><td>Mount Vernon</td><td>720</td><td>5,206 ± 1,903</td><td>1152.8 ± 371.4</td><td>11.6 ± 4.2</td><td>39.0 % ± 5.3 %</td><td>202.3 ± 23.8</td><td>467.4 ± 173.8</td><td>253.5 ± 103.3</td><td>666.8 ± 207.8</td></tr>
+<tr><td>North Platte</td><td>720</td><td>3,613 ± 1,929</td><td>955.9 ± 410.1</td><td>9.3 ± 3.6</td><td>31.6 % ± 5.2 %</td><td>219.0 ± 19.7</td><td>406.4 ± 201.5</td><td>258.8 ± 120.0</td><td>360.1 ± 119.4</td></tr>
+<tr><td>Novelty</td><td>720</td><td>4,640 ± 1,717</td><td>1157.7 ± 389.2</td><td>14.3 ± 6.0</td><td>34.7 % ± 4.4 %</td><td>210.8 ± 21.1</td><td>438.3 ± 160.9</td><td>238.2 ± 95.3</td><td>605.1 ± 184.6</td></tr>
+<tr><td>Rohwer</td><td>720</td><td>5,288 ± 3,047</td><td>1112.4 ± 497.6</td><td>9.6 ± 3.4</td><td>38.6 % ± 8.4 %</td><td>138.9 ± 14.0</td><td>461.4 ± 230.7</td><td>213.9 ± 99.8</td><td>409.8 ± 141.4</td></tr></tbody></table>
+
+<h3>By cultivar type</h3>
+<table class="tbl"><thead><tr><th>Crop</th><th>N</th><th>Yield (kg/ha)</th><th>WTOP (g/m²)</th><th>CTR (mm)</th><th>HI</th></tr></thead><tbody><tr><td>Soybean-LT1.5-MG3</td><td> 540</td><td>3,598 ± 1,280</td><td>866.7 ± 236.1</td><td>325.8 ± 88.0</td><td>35.5 % ± 5.7 %</td></tr>
+<tr><td>Soybean-LT1.5-MG4</td><td>1260</td><td>4,471 ± 1,572</td><td>998.8 ± 269.5</td><td>371.2 ± 98.8</td><td>38.3 % ± 6.3 %</td></tr>
+<tr><td>Soybean-LT2-MG3</td><td> 540</td><td>4,113 ± 1,934</td><td>1000.4 ± 372.4</td><td>412.1 ± 159.5</td><td>34.6 % ± 6.0 %</td></tr>
+<tr><td>Soybean-LT2-MG4</td><td>1260</td><td>5,130 ± 2,372</td><td>1159.1 ± 407.8</td><td>468.1 ± 173.9</td><td>37.1 % ± 7.0 %</td></tr>
+<tr><td>Soybean-LT2.5-MG3</td><td> 540</td><td>4,410 ± 2,332</td><td>1072.7 ± 461.6</td><td>468.5 ± 214.3</td><td>34.3 % ± 6.0 %</td></tr>
+<tr><td>Soybean-LT2.5-MG4</td><td>1260</td><td>5,456 ± 2,819</td><td>1231.3 ± 490.1</td><td>521.2 ± 226.4</td><td>36.8 % ± 7.2 %</td></tr>
+<tr><td>Soybean-MG3</td><td> 540</td><td>4,668 ± 2,596</td><td>1139.7 ± 523.3</td><td>501.5 ± 256.5</td><td>34.0 % ± 5.9 %</td></tr>
+<tr><td>Soybean-MG4</td><td>1260</td><td>5,694 ± 2,970</td><td>1285.4 ± 515.2</td><td>528.1 ± 240.0</td><td>36.7 % ± 7.1 %</td></tr></tbody></table>
+
+<h3>By management (water regime × planting window)</h3>
+<table class="tbl"><thead><tr><th>Water regime</th><th>Planting window</th><th>N</th><th>Yield (kg/ha)</th><th>CTR (mm)</th><th>CIRGW (mm)</th><th>IRGNO</th></tr></thead><tbody><tr><td>Irrigated</td><td>Early</td><td>1200</td><td>7,952 ± 1,744</td><td>710.7 ± 162.9</td><td>669.3</td><td>13.9</td></tr>
+<tr><td>Irrigated</td><td>Late</td><td>1200</td><td>5,304 ± 1,503</td><td>480.7 ± 131.2</td><td>482.0</td><td>10.9</td></tr>
+<tr><td>Irrigated</td><td>Mid</td><td>1200</td><td>6,915 ± 1,707</td><td>631.1 ± 156.8</td><td>606.4</td><td>13.2</td></tr>
+<tr><td>Rainfed</td><td>Early</td><td>1200</td><td>3,427 ± 1,334</td><td>345.2 ± 86.1</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>Rainfed</td><td>Late</td><td>1200</td><td>2,661 ± 981</td><td>268.9 ± 62.4</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>Rainfed</td><td>Mid</td><td>1200</td><td>3,084 ± 1,192</td><td>315.0 ± 74.2</td><td>0.0</td><td>0.0</td></tr></tbody></table>
+
+<!-- ── 5. PHENOLOGY ─────────────────────────────────────────────────── -->
+<h2 id="phenology">5. Phenology — Days After Planting (mean ± SD)</h2>
+<p>EMR = emergence, R1 = first flower, R5 = beginning seed fill, R7 = physiological maturity, R8 = harvest maturity.</p>
+<table class="tbl"><thead><tr><th>Location</th><th>EMR (DAP)</th><th>R1 (DAP)</th><th>R5 (DAP)</th><th>R7 (DAP)</th><th>R8 (DAP)</th></tr></thead><tbody><tr><td>Albany</td><td>6.8 ± 2.1</td><td>72.7 ± 13.7</td><td>97.2 ± 15.4</td><td>197.7 ± 26.7</td><td>211.8 ± 20.7</td></tr>
+<tr><td>Eustis</td><td>8.7 ± 3.4</td><td>69.8 ± 11.6</td><td>94.3 ± 13.8</td><td>184.7 ± 38.8</td><td>214.9 ± 22.5</td></tr>
+<tr><td>Jonesboro</td><td>6.6 ± 2.0</td><td>60.0 ± 6.5</td><td>88.3 ± 10.8</td><td>130.6 ± 13.6</td><td>156.3 ± 20.6</td></tr>
+<tr><td>Keiser</td><td>6.3 ± 1.6</td><td>58.3 ± 6.1</td><td>86.6 ± 10.5</td><td>128.7 ± 14.0</td><td>152.5 ± 20.2</td></tr>
+<tr><td>Lincoln</td><td>7.6 ± 2.6</td><td>67.2 ± 10.4</td><td>91.2 ± 13.1</td><td>168.5 ± 36.6</td><td>209.6 ± 26.2</td></tr>
+<tr><td>Marianna</td><td>6.2 ± 1.5</td><td>56.7 ± 5.3</td><td>85.2 ± 9.7</td><td>126.7 ± 13.3</td><td>147.2 ± 17.4</td></tr>
+<tr><td>Mount Vernon</td><td>6.7 ± 1.7</td><td>64.4 ± 11.2</td><td>89.2 ± 13.9</td><td>166.6 ± 28.5</td><td>202.3 ± 23.8</td></tr>
+<tr><td>North Platte</td><td>9.8 ± 4.0</td><td>74.0 ± 12.8</td><td>98.0 ± 14.9</td><td>198.0 ± 35.9</td><td>219.0 ± 19.7</td></tr>
+<tr><td>Novelty</td><td>6.6 ± 1.8</td><td>72.4 ± 13.3</td><td>96.8 ± 15.2</td><td>191.4 ± 29.7</td><td>210.8 ± 21.1</td></tr>
+<tr><td>Rohwer</td><td>6.0 ± 1.3</td><td>53.1 ± 4.4</td><td>80.8 ± 8.7</td><td>121.9 ± 13.0</td><td>138.9 ± 14.0</td></tr></tbody></table>
+
+<!-- ── 6. WATER BALANCE ─────────────────────────────────────────────── -->
+<h2 id="water">6. Seasonal Water Balance by Location (mean, mm)</h2>
+<div class="note">Values averaged across all management types and years.
+  CTR = crop transpiration, CE = soil evaporation, ET = CTR + CE,
+  CDRAIN = deep drainage, CRUNOF = surface runoff.</div>
+<table class="tbl"><thead><tr><th>Location</th><th>CRAIN (mm)</th><th>CTR (mm)</th><th>CE (mm)</th><th>CDRAIN (mm)</th><th>CRUNOF (mm)</th><th>ET (mm)</th><th>E/ET (%)</th></tr></thead><tbody><tr><td>Albany</td><td>582.6</td><td>448.1</td><td>238.9</td><td>113.4</td><td>31.7</td><td>687.0</td><td>34.2 %</td></tr>
+<tr><td>Eustis</td><td>461.4</td><td>422.4</td><td>240.0</td><td>93.3</td><td>24.0</td><td>662.4</td><td>36.4 %</td></tr>
+<tr><td>Jonesboro</td><td>470.5</td><td>508.6</td><td>232.0</td><td>92.2</td><td>25.0</td><td>740.6</td><td>30.8 %</td></tr>
+<tr><td>Keiser</td><td>487.4</td><td>479.0</td><td>220.3</td><td>106.4</td><td>27.2</td><td>699.3</td><td>32.1 %</td></tr>
+<tr><td>Lincoln</td><td>484.8</td><td>452.1</td><td>243.0</td><td>83.5</td><td>24.7</td><td>695.1</td><td>34.7 %</td></tr>
+<tr><td>Marianna</td><td>434.7</td><td>502.2</td><td>234.8</td><td>72.1</td><td>25.4</td><td>737.0</td><td>31.4 %</td></tr>
+<tr><td>Mount Vernon</td><td>666.8</td><td>467.4</td><td>253.5</td><td>159.3</td><td>47.8</td><td>720.9</td><td>34.8 %</td></tr>
+<tr><td>North Platte</td><td>360.1</td><td>406.4</td><td>258.8</td><td>49.5</td><td>11.3</td><td>665.2</td><td>38.8 %</td></tr>
+<tr><td>Novelty</td><td>605.1</td><td>438.3</td><td>238.2</td><td>134.0</td><td>35.8</td><td>676.5</td><td>34.8 %</td></tr>
+<tr><td>Rohwer</td><td>409.8</td><td>461.4</td><td>213.9</td><td>80.8</td><td>26.4</td><td>675.3</td><td>32.0 %</td></tr></tbody></table>
+
+<!-- ── 7. MATURITY STATUS ───────────────────────────────────────────── -->
+<h2 id="maturity">7. Maturity Type by Location</h2>
+<div class="card">
+  <p>
+    <span class="badge badge-green">1 — Normal</span> maturity reached before stop date.
+    &nbsp;
+    <span class="badge badge-orange">2 — Premature</span> LAI dropped below 0.05 during grain fill (crop aborted early).
+    &nbsp;
+    <span class="badge badge-red">5 — Flood kill</span> flooded for more than FLDKIL consecutive days.
+  </p>
+</div>
+<table class="tbl"><thead><tr><th>Location</th><th>Total years</th><th>Normal (1)</th><th>Premature (2)</th><th>Flood kill (5)</th></tr></thead><tbody><tr><td>Albany</td><td>720</td><td>  9</td><td>0</td><td>0</td></tr>
+<tr><td>Eustis</td><td>720</td><td> 65</td><td>0</td><td>0</td></tr>
+<tr><td>Jonesboro</td><td>720</td><td>673</td><td>0</td><td>0</td></tr>
+<tr><td>Keiser</td><td>720</td><td>691</td><td>0</td><td>0</td></tr>
+<tr><td>Lincoln</td><td>720</td><td>116</td><td>0</td><td>0</td></tr>
+<tr><td>Marianna</td><td>720</td><td>711</td><td>0</td><td>0</td></tr>
+<tr><td>Mount Vernon</td><td>720</td><td>132</td><td>0</td><td>0</td></tr>
+<tr><td>North Platte</td><td>720</td><td> 20</td><td>0</td><td>0</td></tr>
+<tr><td>Novelty</td><td>720</td><td> 20</td><td>0</td><td>0</td></tr>
+<tr><td>Rohwer</td><td>720</td><td>720</td><td>0</td><td>0</td></tr></tbody></table>
+
+
+
+</main>
+</body>
+</html>
