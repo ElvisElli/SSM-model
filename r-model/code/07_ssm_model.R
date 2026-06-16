@@ -49,7 +49,7 @@ source_ssm_modules <- function(code_dir = ".") {
 #     $summary - One-row data.frame of seasonal summary outputs
 #     $daily   - data.frame of daily outputs (if verbose = TRUE)
 # =============================================================================
-run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
+run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE, init_ftswrz = 0) {
 
   # ---- Scenario parameters -----------------------------------------------
   LAT      <- as.numeric(scn$lat)
@@ -60,7 +60,6 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
   pchng    <- as.numeric(scn$pchng)
   Pdoy     <- as.integer(scn$pdoy)    # sowing DOY
   SimDoy   <- as.integer(scn$sim_doy)  # simulation start DOY
-  if (SimDoy == Pdoy) SimDoy <- Pdoy - 1
   Lpdoy    <- as.integer(scn$lpdoy)    # last possible sowing DOY
   StopDoy  <- as.integer(scn$stop_doy)
   PDEN     <- as.numeric(scn$pden)
@@ -72,16 +71,17 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
   MC       <- as.numeric(scn$MC)  # grain moisture content %
 
   # ---- Crop pars object for sub-model inits ------------------------------
-  # Merge scenario row with PDEN into crop_pars
   crop_pars        <- as.list(scn)
   crop_pars$pden   <- PDEN
+  crop_pars$lat    <- LAT     # needed by init_dm_production for hourly solar calc
 
   # ---- Initialize sub-models ---------------------------------------------
   bd_thres <- init_phenology_legume(crop_pars)
   lai_st   <- init_crop_lai(crop_pars)
   dmp_pars <- init_dm_production(crop_pars, CO2 = CO2, CO2REF = CO2REF)
   dmd_st   <- init_dm_distribution(crop_pars)
-  sw       <- init_soil_water(soil, crop_pars, CO2 = CO2, CO2REF = CO2REF)
+  sw       <- init_soil_water(soil, crop_pars, CO2 = CO2, CO2REF = CO2REF,
+                               init_ftswrz = init_ftswrz)
 
   # ---- Build weather lookup for this year ---------------------------------
   # VBA reads sequentially; we subset weather to the simulation year
@@ -123,16 +123,17 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
 
   # ====================================================================
   # ADVANCE TO SOWING DATE (FixFind=0: fixed sowing date = Pdoy)
-  # Run soil water before sowing if needed
+  # Run soil water before sowing if needed (no-op when SimDoy == Pdoy,
+  # which is the case for every scenario in scenarios.csv — Excel does
+  # not run a multi-day pre-sowing loop; soil starts at DUL and only the
+  # sowing day itself runs step_soil_water before the crop loop begins).
   # ====================================================================
-  # Advance from SimDoy to Pdoy, updating soil water each day pre-sowing
   while (wrow <= nrow(wth_sim) && wth_sim$DOY[wrow] != Pdoy) {
     w <- get_weather_row(wth_sim, wrow, tchng, pchng, SNOW)
     SNOW <- w$SNOW
 
     if (water %in% c(1, 2, 3)) {
-      # Run soil water in pre-sowing period (CBD=0)
-      state_pre <- list(CBD=0, DAP=0, bd=0, DDMP=0, LAI=0, BLSLAI=0,
+      state_pre <- list(CBD=0, DAP=0, bd=0, DDMP=0, TR=0, LAI=0, BLSLAI=0,
                         VPDF=VPDF, WSFL=WSFL, WSFG=WSFG, PDEN=PDEN)
       sw <- step_soil_water(sw, state_pre, bd_thres, w, water, IRGLVL)
     }
@@ -141,23 +142,46 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
     if (wrow > nrow(wth_sim)) break
   }
 
+  # Sowing day (Pdoy): CBD stays 0, run soil water only — no phenology.
+  # DAP stays at 0; step_phenology_legume increments it to 1 on the first growth day
+  # (Pdoy+1), matching Excel where DAP=0 on sowing day and DAP=1 on Pdoy+1.
+  if (wrow <= nrow(wth_sim) && wth_sim$DOY[wrow] == Pdoy) {
+    w    <- get_weather_row(wth_sim, wrow, tchng, pchng, SNOW)
+    SNOW <- w$SNOW
+    if (water %in% c(1, 2, 3)) {
+      state_sow <- list(CBD=0, DAP=0, bd=0, DDMP=0, TR=0, LAI=0, BLSLAI=0,
+                        VPDF=VPDF, WSFL=WSFL, WSFG=WSFG, PDEN=PDEN)
+      sw <- step_soil_water(sw, state_sow, bd_thres, w, water, IRGLVL)
+      WSFL <- sw$WSFL; WSFG <- sw$WSFG; WSFD <- sw$WSFD; WSFN <- sw$WSFN
+    }
+    DAS  <- DAS + 1
+    wrow <- wrow + 1
+  }
+
   # ====================================================================
-  # MAIN DAILY SIMULATION LOOP (from sowing to maturity)
+  # MAIN DAILY SIMULATION LOOP (from Pdoy+1 to maturity)
+  # Order matches the Excel VBA model:
+  #   Phenology → CropLAI (yesterday's GLF) → DMProduction → DMDistribution → SoilWater
   # ====================================================================
+  i_day <- 0L  # sequential daily output counter
+
   while (MAT == 0 && wrow <= nrow(wth_sim)) {
     # --- Read weather for today -------------------------------------------
     w    <- get_weather_row(wth_sim, wrow, tchng, pchng, SNOW)
     SNOW <- w$SNOW
     doy  <- w$doy
 
-    # Shared state object passed between sub-models
+    # Next day's Tmin for hourly temperature curve (afternoon limb); VBA: TMINA
+    TMINA <- if (wrow + 1 <= nrow(wth_sim)) wth_sim$TMIN[wrow + 1] + tchng else w$TMIN
+
+    # Shared state object
     state <- list(
       CBD = CBD, DAP = DAP, bd = 0, DTU = 0,
       WSFD = WSFD, WSFL = WSFL, WSFG = WSFG, WSFN = WSFN,
       LAI  = lai_st$LAI, BLSLAI = BLSLAI,
-      DDMP = DDMP,
+      DDMP = DDMP, TR = 0,
       TMIN = w$TMIN, TMAX = w$TMAX, TMP = w$TMP,
-      VPDF = VPDF, PDEN = PDEN,
+      VPDF = VPDF, PDEN = PDEN, TMINA = TMINA,
       dtEMR = dtEMR, dtR0 = dtR0, dtR1 = dtR1, dtR3 = dtR3,
       dtR5 = dtR5, dtR7 = dtR7, dtR8 = dtR8,
       MAT = MAT, MATYP = MATYP
@@ -178,44 +202,53 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
     dtR3   <- state$dtR3;  dtR5 <- state$dtR5; dtR7 <- state$dtR7
     dtR8   <- state$dtR8
     MAT    <- state$MAT; MATYP <- state$MATYP
+    state$CBD <- CBD; state$DAP <- DAP
+    state$bd  <- bd;  state$DTU <- DTU
 
-    # --- 2. DM PRODUCTION (DDMP, TR) ------------------------------------
-    state$CBD <- CBD; state$LAI <- lai_st$LAI
+    # --- 2. CROP LAI (uses yesterday's GLF = dmd_st$GLF) ----------------
+    lai_st <- step_crop_lai(lai_st, state, dmd_st$GLF, bd_thres)
+
+    # Pre-mature senescence: LAI too low during seed fill
+    if (CBD > bd_thres$bdBSG && CBD < bd_thres$bdTSG && lai_st$LAI < 0.05) {
+      CBD   <- bd_thres$bdTSG
+      MATYP <- 2L
+    }
+
+    # Save BLSLAI for soil evaporation after BSG
+    if (CBD <= bd_thres$bdBLS) BLSLAI <- lai_st$LAI
+    lai_st$BLSLAI <- BLSLAI
+    state$LAI    <- lai_st$LAI
+    state$BLSLAI <- BLSLAI
+
+    # --- 3. DM PRODUCTION (DDMP, TR) using today's updated LAI ----------
     dmp_result <- step_dm_production(dmp_pars, state, bd_thres, w)
     DDMP   <- dmp_result$DDMP
     FINT   <- dmp_result$FINT
     TCFRUE <- dmp_result$TCFRUE
     state$DDMP <- DDMP
+    state$TR   <- dmp_result$TR
 
-    # --- 3. DM DISTRIBUTION (SGR, WGRN, GLF, GST) ----------------------
+    # --- 4. DM DISTRIBUTION (SGR, WGRN, GLF for next day) --------------
     dmd_st <- step_dm_distribution(dmd_st, state, bd_thres)
-    GLF    <- dmd_st$GLF
-
-    # --- 4. CROP LAI (LAI, GLAI, DLAI) ----------------------------------
-    lai_st <- step_crop_lai(lai_st, state, GLF, bd_thres)
-    # Check pre-mature senescence: if LAI < 0.05 during seed fill
-    if (CBD > bd_thres$bdBSG && CBD < bd_thres$bdTSG && lai_st$LAI < 0.05) {
-      CBD   <- bd_thres$bdTSG
-      MATYP <- 2L  # pre-mature due to low LAI
-    }
 
     # Save LAI and DM at R5 (seed fill start)
     if (CBD <= bd_thres$bdR5) {
       R5ANTLAI <- lai_st$LAI
       R5ANTDM  <- dmd_st$WTOP
     }
-    # Save BLSLAI for soil evaporation after BSG
-    if (CBD <= bd_thres$bdBLS) {
-      BLSLAI <- lai_st$LAI
-    }
-    lai_st$BLSLAI <- BLSLAI
 
     # --- 5. SOIL WATER --------------------------------------------------
     if (water %in% c(1, 2, 3)) {
-      state$DDMP   <- DDMP
-      state$LAI    <- lai_st$LAI
-      state$BLSLAI <- BLSLAI
-      state$bd     <- bd
+      # VBA SoilWater resets cumulative balances at DAP=1 (first growth day),
+      # discarding any pre-sowing evaporation/drainage from the sowing day.
+      # iATSW/ISOLWAT are also snapped to the post-sowing-day soil state.
+      if (DAP == 1L) {
+        sw$CE     <- 0; sw$CTR    <- 0; sw$CRAIN  <- 0
+        sw$CRUNOF <- 0; sw$CDRAIN <- 0
+        sw$iATSW  <- sw$ATSW
+        sw$iFTSW  <- sw$FTSW
+        sw$ISOLWAT <- sw$ATSWSL
+      }
       sw <- step_soil_water(sw, state, bd_thres, w, water, IRGLVL)
 
       # Feed water stress back for next day
@@ -238,13 +271,11 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
       STMAXT<- STMAXT + w$TMAX; SSRADT <- SSRADT + w$SRAD
       SUMETT <- SUMETT + sw$SEVP + sw$TR
     }
-    # Pre-BSG period
     if (CBD <= bd_thres$bdBSG) {
       DAY2  <- DAY2  + 1; SRAIN2 <- SRAIN2 + w$RAIN; STMIN2 <- STMIN2 + w$TMIN
       STMAX2<- STMAX2 + w$TMAX; SSRAD2 <- SSRAD2 + w$SRAD
       SUMET2 <- SUMET2 + sw$SEVP + sw$TR
     }
-    # Post-BSG period
     if (CBD > bd_thres$bdBSG && CBD <= bd_thres$bdMAT) {
       DAY3  <- DAY3  + 1; SRAIN3 <- SRAIN3 + w$RAIN; STMIN3 <- STMIN3 + w$TMIN
       STMAX3<- STMAX3 + w$TMAX; SSRAD3 <- SSRAD3 + w$SRAD
@@ -253,7 +284,8 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
 
     # --- Daily output (optional) ----------------------------------------
     if (verbose) {
-      daily_out[[DAP]] <- list(
+      i_day <- i_day + 1L
+      daily_out[[i_day]] <- list(
         doy = doy, DAP = DAP, TMP = w$TMP, DTU = DTU, CBD = CBD,
         MSNN = lai_st$MSNN, GLAI = lai_st$GLAI, DLAI = lai_st$DLAI,
         LAI = lai_st$LAI, TCFRUE = TCFRUE, FINT = FINT, DDMP = DDMP,
@@ -350,6 +382,7 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE) {
   }
 
   list(summary = summary_row, daily = daily_df,
+       final_ftswrz = sw$FTSWRZ,
        layer_state = list(
          iATSW = sw$iATSW, iFTSW = sw$iFTSW,
          fATSW = sw$ATSW,  fFTSW = sw$FTSW
