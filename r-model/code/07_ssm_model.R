@@ -239,6 +239,16 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE, init_ftswrz
 
     # --- 5. SOIL WATER --------------------------------------------------
     if (water %in% c(1, 2, 3)) {
+      # VBA SoilWater resets cumulative balances at DAP=1 (first growth day),
+      # discarding any pre-sowing evaporation/drainage from the sowing day.
+      # iATSW/ISOLWAT are also snapped to the post-sowing-day soil state.
+      if (DAP == 1L) {
+        sw$CE     <- 0; sw$CTR    <- 0; sw$CRAIN  <- 0
+        sw$CRUNOF <- 0; sw$CDRAIN <- 0
+        sw$iATSW  <- sw$ATSW
+        sw$iFTSW  <- sw$FTSW
+        sw$ISOLWAT <- sw$ATSWSL
+      }
       sw <- step_soil_water(sw, state, bd_thres, w, water, IRGLVL)
 
       # Feed water stress back for next day
