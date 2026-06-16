@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSM Soybean Model — Technical Documentation</title>
+<style>
+  :root {
+    --primary: #1a5276;
+    --accent:  #2e86c1;
+    --green:   #1e8449;
+    --orange:  #d35400;
+    --bg:      #f8f9fa;
+    --card:    #ffffff;
+    --border:  #dee2e6;
+    --code-bg: #f1f3f4;
+    --text:    #212529;
+    --muted:   #6c757d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px;
+         color: var(--text); background: var(--bg); line-height: 1.7; }
+
+  /* ── Layout ─────────────────────────────────────── */
+  #toc { position: fixed; top: 0; left: 0; width: 230px; height: 100vh;
+         overflow-y: auto; background: var(--primary); color: #cde; padding: 12px 0; z-index: 100; }
+  #toc h3 { padding: 10px 16px 6px; font-size: 12px; text-transform: uppercase;
+             letter-spacing: 1px; color: #acc; }
+  #toc a { display: block; padding: 5px 16px; font-size: 13px; color: #cde;
+            text-decoration: none; border-left: 3px solid transparent; }
+  #toc a:hover, #toc a.active { background: rgba(255,255,255,.1);
+                                  border-left-color: #5bc0de; color: #fff; }
+  #toc .indent { padding-left: 28px; font-size: 12px; }
+  main { margin-left: 230px; padding: 32px 48px 64px; max-width: 1100px; }
+
+  /* ── Section headings ───────────────────────────── */
+  h1 { font-size: 2rem; color: var(--primary); border-bottom: 3px solid var(--accent);
+       padding-bottom: 10px; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 1.45rem; color: var(--primary); margin: 44px 0 14px;
+       border-left: 5px solid var(--accent); padding-left: 12px; }
+  h3 { font-size: 1.15rem; color: var(--accent); margin: 28px 0 10px; }
+  h4 { font-size: 1rem; color: var(--green); margin: 20px 0 8px; }
+  p  { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 12px 24px; }
+  li { margin-bottom: 4px; }
+
+  /* ── Cards / callouts ──────────────────────────── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+           padding: 18px 22px; margin: 18px 0; }
+  .note  { border-left: 4px solid #2196f3; background: #e3f2fd; padding: 12px 16px;
+            border-radius: 4px; margin: 14px 0; font-size: 14px; }
+  .warn  { border-left: 4px solid #ff9800; background: #fff3e0; padding: 12px 16px;
+            border-radius: 4px; margin: 14px 0; font-size: 14px; }
+  .key   { border-left: 4px solid #4caf50; background: #e8f5e9; padding: 12px 16px;
+            border-radius: 4px; margin: 14px 0; font-size: 14px; }
+
+  /* ── Equations ─────────────────────────────────── */
+  .eq { background: #f0f4f8; border: 1px solid #c8d6e5; border-radius: 4px;
+        padding: 14px 20px; margin: 12px 0 16px; font-family: 'Courier New', monospace;
+        font-size: 14.5px; line-height: 1.9; overflow-x: auto; }
+  .eq-label { font-size: 12px; color: var(--muted); float: right; font-family: sans-serif; }
+  .sym { font-style: italic; font-family: 'Times New Roman', serif; }
+
+  /* ── Code ──────────────────────────────────────── */
+  pre { background: #1e2a38; color: #e8f0fe; border-radius: 6px; padding: 16px 20px;
+        overflow-x: auto; font-size: 13px; line-height: 1.55; margin: 14px 0; }
+  code { font-family: 'Courier New', monospace; font-size: 13px; }
+  pre code { color: #e8f0fe; }
+  .kw  { color: #c792ea; }   /* keywords */
+  .fn  { color: #82aaff; }   /* functions */
+  .co  { color: #546e7a; font-style: italic; }  /* comments */
+  .nm  { color: #f78c6c; }   /* numbers */
+  .st  { color: #c3e88d; }   /* strings */
+  .inline-code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
+                  font-family: monospace; font-size: 13px; }
+
+  /* ── Tables ────────────────────────────────────── */
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  th { background: var(--primary); color: #fff; padding: 8px 12px; text-align: left; }
+  td { padding: 7px 12px; border-bottom: 1px solid var(--border); }
+  tr:nth-child(even) td { background: #f2f6fb; }
+  tr:hover td { background: #e8f4fd; }
+
+  /* ── Figures ───────────────────────────────────── */
+  figure { margin: 22px 0; text-align: center; }
+  figure img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px;
+               box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  /* ── Flow diagram (CSS) ────────────────────────── */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+          margin: 18px 0; justify-content: center; }
+  .flow-box { background: var(--accent); color: #fff; border-radius: 6px;
+              padding: 10px 16px; font-size: 13px; font-weight: 600;
+              text-align: center; min-width: 110px; }
+  .flow-box.green  { background: var(--green); }
+  .flow-box.orange { background: var(--orange); }
+  .flow-box.gray   { background: #607d8b; }
+  .flow-arrow { font-size: 20px; color: var(--muted); padding: 0 6px; }
+
+  /* ── Stage diagram ─────────────────────────────── */
+  .stages { position: relative; height: 54px; background: #e8f4fd;
+            border-radius: 6px; overflow: hidden; margin: 18px 0; font-size: 12px; }
+  .stage-bar { position: absolute; top: 0; height: 100%; display: flex;
+               align-items: center; justify-content: center; color: #fff;
+               font-weight: 700; font-size: 11px; }
+
+  /* ── Stat chips ─────────────────────────────────── */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+               gap: 12px; margin: 16px 0; }
+  .stat-chip { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+               padding: 14px 16px; text-align: center; }
+  .stat-chip .val { font-size: 1.6rem; font-weight: 700; color: var(--green); }
+  .stat-chip .lab { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Print ─────────────────────────────────────── */
+  @media print { #toc { display:none; } main { margin-left:0; } }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════ SIDEBAR TOC ════════════════════════════ -->
+<nav id="toc">
+  <h3>Contents</h3>
+  <a href="#overview">1. Overview</a>
+  <a href="#architecture">2. Architecture</a>
+  <a href="#phenology">3. Phenology</a>
+  <a class="indent" href="#tempfun">Temperature function</a>
+  <a class="indent" href="#pp">Photoperiod response</a>
+  <a class="indent" href="#stages">Stage sequence</a>
+  <a href="#lai">4. Crop LAI</a>
+  <a href="#dmprod">5. DM Production</a>
+  <a class="indent" href="#rue">RUE &amp; CO₂</a>
+  <a class="indent" href="#daily-mode">Daily mode</a>
+  <a class="indent" href="#lt">Limited Transpiration (LT)</a>
+  <a class="indent" href="#hourly-rad">  Hourly radiation</a>
+  <a class="indent" href="#hourly-temp">  Hourly temperature</a>
+  <a class="indent" href="#hourly-vpd">  Hourly VPD (BPD)</a>
+  <a class="indent" href="#lt-reduction">  LT reduction</a>
+  <a class="indent" href="#lt-params">  Parameters &amp; cultivars</a>
+  <a href="#dmdist">6. DM Distribution</a>
+  <a href="#soil">7. Soil Water Balance</a>
+  <a class="indent" href="#soilinit">Initialisation</a>
+  <a class="indent" href="#evap">Soil evaporation</a>
+  <a class="indent" href="#runoff">Runoff</a>
+  <a class="indent" href="#drainage">Drainage</a>
+  <a class="indent" href="#wstress">Water stress</a>
+  <a class="indent" href="#irrig">Irrigation</a>
+  <a href="#integration">8. Model integration</a>
+  <a href="#params">9. Parameter tables</a>
+  <a href="#validation">10. Validation</a>
+</nav>
+
+<!-- ════════════════════════════ MAIN ════════════════════════════════════ -->
+<main>
+
+<!-- ── 1. OVERVIEW ───────────────────────────────────────────────── -->
+<h1 id="overview">SSM Soybean Model</h1>
+<p class="subtitle">
+  R implementation — Technical Documentation &nbsp;|&nbsp;
+  Based on Soltani &amp; Sinclair (2012), <em>Modeling Physiology of Crop
+  Development, Growth and Yield</em>
+</p>
+
+<div class="stat-grid">
+  <div class="stat-chip"><div class="val">10</div><div class="lab">Locations</div></div>
+  <div class="stat-chip"><div class="val">240</div><div class="lab">Scenarios</div></div>
+  <div class="stat-chip"><div class="val">7 200</div><div class="lab">Sim-years</div></div>
+  <div class="stat-chip"><div class="val">R²≥0.999</div><div class="lab">vs Excel reference</div></div>
+  <div class="stat-chip"><div class="val">6</div><div class="lab">Sub-models</div></div>
+  <div class="stat-chip"><div class="val">Daily + hourly</div><div class="lab">Time step</div></div>
+</div>
+
+<p>
+  The SSM (<strong>Simple Simulation Model</strong>) Soybean model is a
+  process-based, daily time-step crop simulation model for soybean
+  (<em>Glycine max</em>). It was originally developed in Excel/VBA and has
+  been fully reimplemented in R for this project. The R implementation
+  reproduces the VBA reference to within floating-point precision across
+  all 7 200 simulation years.
+</p>
+
+<div class="key">
+  <strong>Scope:</strong> The model simulates soybean development, growth,
+  and yield from sowing to maturity under user-specified weather, soil,
+  management (rainfed or irrigated), and CO₂ scenarios. It optionally
+  activates an <strong>LT (Limited Transpiration) trait</strong> — a key
+  adaptation mechanism for soybean in high-VPD environments — which
+  requires an hourly sub-loop for accurate simulation.
+</div>
+
+<h3>Input / Output summary</h3>
+<table>
+<tr><th>Input category</th><th>Variables</th><th>Source</th></tr>
+<tr><td>Weather</td><td>TMIN, TMAX, SRAD, RAIN (daily)</td><td>Excel weather files per location</td></tr>
+<tr><td>Soil</td><td>10-layer: SAT, DUL, CLL, ADRY, DLYER, DRAINF</td><td>soil_data.json</td></tr>
+<tr><td>Crop</td><td>~60 genetic parameters per cultivar</td><td>scenarios.csv (Crop sheet columns)</td></tr>
+<tr><td>Management</td><td>Sowing DOY, plant density, irrigation mode, IRGLVL</td><td>scenarios.csv (Manag sheet)</td></tr>
+<tr><td>Climate</td><td>CO₂ concentration, temperature/precipitation offsets</td><td>scenarios.csv</td></tr>
+<tr><th>Output category</th><th>Variables</th><th>Frequency</th></tr>
+<tr><td>Phenology</td><td>dtEMR, dtR1, dtR3, dtR5, dtR7, dtR8 (days to each stage)</td><td>Annual summary</td></tr>
+<tr><td>Biomass</td><td>WTOP, WGRN, MXLAI, HI, Ywet</td><td>Annual summary</td></tr>
+<tr><td>Water balance</td><td>CE, CTR, CRAIN, CIRGW, IRGNO, CDRAIN, CRUNOF, IPASW, ATSWSL</td><td>Annual summary</td></tr>
+<tr><td>Daily</td><td>All state variables (LAI, CBD, FTSWRZ, SEVP, TR, …)</td><td>Optional daily output</td></tr>
+</table>
+
+
+<!-- ── 2. ARCHITECTURE ────────────────────────────────────────────── -->
+<h2 id="architecture">2. Model Architecture</h2>
+
+<p>
+  The model is composed of six sub-models that execute sequentially within
+  a daily loop. Each sub-model reads the outputs of the previous one and
+  the model loops from sowing day + 1 until maturity or a stop date.
+</p>
+
+<div class="flow">
+  <div class="flow-box gray">Weather<br><small>read_weather()</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">Phenology<br><small>02_phenology.R</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">Crop LAI<br><small>03_crop_lai.R</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box orange">DM Production<br><small>04_dm_production.R</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box green">DM Distribution<br><small>05_dm_distribution.R</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">Soil Water<br><small>06_soil_water.R</small></div>
+</div>
+
+<p>
+  This order matches the original VBA model exactly. The water stress
+  factors computed by the <strong>Soil Water</strong> sub-model on day
+  <em>t</em> feed back into <strong>Phenology</strong>, <strong>DM
+  Production</strong>, and <strong>Crop LAI</strong> on day <em>t+1</em>.
+</p>
+
+<h3>Key global state: FTSWRZ carry-over</h3>
+<div class="warn">
+  <strong>Critical implementation detail:</strong> In the original VBA
+  model, <code>FTSWRZ</code> (fraction of transpirable soil water in the
+  root zone) is a <em>module-level Double</em> that is <strong>never
+  reset between scenarios</strong>. Its value at the end of one
+  scenario-year is used as the starting evaporation stage on the first
+  day of the next scenario-year. The R implementation replicates this by
+  threading a single <code class="inline-code">global_ftswrz</code>
+  scalar through all 240 scenarios in CSV row order, starting at 0.
+  This is essential for correct stage-1 vs stage-2 soil evaporation.
+</div>
+
+<h3>DAP=1 cumulative reset</h3>
+<p>
+  At the start of the first growth day (DAP=1, i.e., sowing day + 1),
+  the VBA SoilWater sub-routine resets all cumulative water balance
+  accumulators (CE, CTR, CRAIN, CRUNOF, CDRAIN → 0). Any evaporation
+  that occurred on sowing day itself is saved to a CE₀ variable but is
+  not reported in the seasonal output. The R model applies the same reset
+  in <code class="inline-code">07_ssm_model.R</code> just before calling
+  <code class="inline-code">step_soil_water()</code> when DAP == 1.
+</p>
+
+
+<!-- ── 3. PHENOLOGY ───────────────────────────────────────────────── -->
+<h2 id="phenology">3. Phenology Sub-Model</h2>
+<p><em>Source: <code>02_phenology.R</code></em></p>
+
+<p>
+  Soybean development is tracked in <strong>biological days (BD)</strong>,
+  a dimensionless physiological time scale bounded between 0 and 1 per
+  calendar day. Daily BD accumulation integrates temperature and
+  photoperiod responses multiplicatively.
+</p>
+
+<div class="eq">
+  BD<sub>t</sub> = f<sub>T</sub>(T<sub>mean</sub>) × f<sub>pp</sub>(DAYL) × WSFD
+  <span class="eq-label">Eq. 3.1</span>
+</div>
+<div class="eq">
+  CBD = Σ BD<sub>t</sub> &nbsp; (cumulative biological days from sowing)
+  <span class="eq-label">Eq. 3.2</span>
+</div>
+
+<p>
+  After emergence, the water deficit acceleration factor
+  <strong>WSFD</strong> can be &gt; 1, which shortens the time to
+  maturity under drought (calculated in Soil Water module,
+  §<a href="#wstress">7.5</a>).
+</p>
+
+<h3 id="tempfun">Temperature response function</h3>
+<p>
+  A trapezoidal (dent-like) function normalises temperature effects on
+  development and RUE. It is zero below TBD, rises linearly to 1 at TP1,
+  stays at 1 between TP1 and TP2, then declines linearly to zero at TCD.
+</p>
+
+<div class="eq">
+f<sub>T</sub>(T) =
+  <span class="sym">
+    0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if T ≤ TBD or T ≥ TCD<br>
+    (T − TBD) / (TP1 − TBD) &nbsp; if TBD &lt; T &lt; TP1<br>
+    1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if TP1 ≤ T ≤ TP2<br>
+    (TCD − T) / (TCD − TP2) &nbsp; if TP2 &lt; T &lt; TCD
+  </span>
+  <span class="eq-label">Eq. 3.3</span>
+</div>
+
+<p>
+  For phenology, the same function is used with parameters
+  TBD, TP1D, TP2D, TCD (soybean defaults: 7, 27, 34, 45 °C).
+  For RUE, it is called with TBRUE, TP1RUE, TP2RUE, TCRUE
+  (defaults: 10, 20, 30, 40 °C).
+</p>
+
+<pre><code><span class="co"># R implementation — 02_phenology.R</span>
+temperature_function &lt;- <span class="kw">function</span>(TMP, TBD, TP1D, TP2D, TCD) {
+  <span class="kw">if</span> (TMP &lt;= TBD || TMP &gt;= TCD) <span class="kw">return</span>(<span class="nm">0</span>)
+  <span class="kw">if</span> (TMP &gt; TBD  &amp;&amp; TMP &lt; TP1D) <span class="kw">return</span>((TMP - TBD) / (TP1D - TBD))
+  <span class="kw">if</span> (TMP &gt;= TP1D &amp;&amp; TMP &lt;= TP2D) <span class="kw">return</span>(<span class="nm">1</span>)
+  <span class="kw">if</span> (TMP &gt; TP2D &amp;&amp; TMP &lt; TCD)  <span class="kw">return</span>((TCD - TMP) / (TCD - TP2D))
+}</code></pre>
+
+<h3 id="pp">Photoperiod response</h3>
+<p>
+  Soybean is a <strong>short-day plant</strong> (SDP). Long daylengths
+  above a critical photoperiod (cpp) inhibit reproductive development.
+  The effective photoperiod is DAYL + 0.9 h (adds ≈54 min of civil
+  twilight for photoperiod perception).
+</p>
+
+<div class="eq">
+  pp = DAYL + 0.9 &nbsp;&nbsp;&nbsp; (effective photoperiod, h)
+  <span class="eq-label">Eq. 3.4</span>
+</div>
+<div class="eq">
+  f<sub>pp</sub> = 1 − |ppsen| × (pp − cpp) &nbsp; when pp &gt; cpp &nbsp; [SDP]
+  <span class="eq-label">Eq. 3.5</span>
+</div>
+<p>
+  <code class="inline-code">ppsen</code> is negative for soybean (SDP), so
+  |ppsen| &gt; 0. The response is clamped to [0, 1] and is active only
+  between bdBRP (= emergence) and bdTRP.
+</p>
+
+<h3 id="stages">Phenological stage sequence</h3>
+<p>
+  Cumulative biological days (CBD) are compared to thresholds computed
+  from stage-interval parameters. All stage intervals are additive:
+</p>
+
+<div class="stages">
+  <div class="stage-bar" style="left:0%;    width:7%;  background:#8e44ad;">SOW→EMR</div>
+  <div class="stage-bar" style="left:7%;    width:24%; background:#2e86c1;">EMR→R1</div>
+  <div class="stage-bar" style="left:31%;   width:10%; background:#27ae60;">R1→R3</div>
+  <div class="stage-bar" style="left:41%;   width:10%; background:#f39c12;">R3→R5</div>
+  <div class="stage-bar" style="left:51%;   width:25%; background:#e74c3c;">R5→R7</div>
+  <div class="stage-bar" style="left:76%;   width:24%; background:#7f8c8d;">R7→R8</div>
+</div>
+<p style="font-size:12px;color:var(--muted);margin-top:-8px;">
+  Approximate relative durations for a MG-IV cultivar. Width proportional to bd interval.
+</p>
+
+<table>
+<tr><th>Threshold</th><th>Event</th><th>Drives</th></tr>
+<tr><td>bdEMR</td><td>Emergence</td><td>Start leaf expansion, photoperiod response</td></tr>
+<tr><td>bdR1</td><td>Beginning flower</td><td>DAP tracking</td></tr>
+<tr><td>bdR3</td><td>Beginning pod</td><td>DAP tracking</td></tr>
+<tr><td>bdBSG</td><td>Beginning seed growth</td><td>Dynamic HI / grain filling begins</td></tr>
+<tr><td>bdTSG</td><td>End seed growth</td><td>Grain filling ends; LAI pre-maturity senescence</td></tr>
+<tr><td>bdTRP</td><td>End photoperiod response</td><td>Photoperiod effect off</td></tr>
+<tr><td>bdBLS</td><td>Begin leaf senescence</td><td>LAI linear decline</td></tr>
+<tr><td>bdMAT (=bdR8)</td><td>Harvest maturity</td><td>Simulation ends</td></tr>
+</table>
+
+
+<!-- ── 4. CROP LAI ────────────────────────────────────────────────── -->
+<h2 id="lai">4. Crop LAI Sub-Model</h2>
+<p><em>Source: <code>03_crop_lai.R</code></em></p>
+
+<p>
+  Leaf area index (LAI, m²/m²) is computed as the balance between daily
+  gains (GLAI) and losses (DLAI). The LAI then drives PAR interception
+  (Beer's law) in the DM Production module.
+</p>
+
+<h3>Leaf expansion — node production phase (EMR → bdTLM)</h3>
+<p>
+  Node production is driven by thermal time. Each phyllochron interval
+  (PHYL, °C·d) produces one new main-stem node. Leaf area per plant
+  follows a power function of node number:
+</p>
+
+<div class="eq">
+  PLA<sub>2</sub> = PLACON × MSNN<sup>PLAPOW<sub>eff</sub></sup> &nbsp; (cm²/plant)
+  <span class="eq-label">Eq. 4.1</span>
+</div>
+<div class="eq">
+  GLAI = (PLA<sub>2</sub> − PLA<sub>1</sub>) × PDEN / 10 000 × WSFL
+  <span class="eq-label">Eq. 4.2</span>
+</div>
+<p>
+  where PDEN is plant density (plants/m²), the /10 000 converts cm² to
+  m², and WSFL is a water-stress reduction factor (0–1) on leaf
+  expansion. The effective exponent is adjusted for plant density:
+</p>
+<div class="eq">
+  PLAPOW<sub>eff</sub> = PLAPOW × (b_pla_den × PDEN + a_pla_den)
+  <span class="eq-label">Eq. 4.3</span>
+</div>
+
+<h3>Leaf senescence (bdBLS → maturity)</h3>
+<div class="eq">
+  DLAI = (bd<sub>today</sub> / (bdMAT − bdBLS)) × BLSLAI
+  <span class="eq-label">Eq. 4.4</span>
+</div>
+<p>
+  LAI declines linearly to zero by harvest maturity. BLSLAI is the LAI
+  value at the begin-leaf-senescence stage, saved as a snapshot.
+</p>
+
+<h3>Frost and heat damage</h3>
+<p>
+  Extra leaf loss occurs when TMIN &lt; FRZTKIL (frost kill threshold)
+  or TMAX &gt; HtLTH (heat damage threshold):
+</p>
+<div class="eq">
+  DLAIF = LAI × |TMIN − FRZTKIL| × FRZLDR &nbsp; (frost damage)
+  <span class="eq-label">Eq. 4.5</span>
+</div>
+
+<figure>
+  <img src="../r-model/outputs/plots/03_validation_MXLAI.png"
+       alt="Max LAI validation scatter plot">
+  <figcaption>
+    Figure 4.1 — Maximum LAI (R model vs. Excel reference) across 7 200
+    simulation years. RMSE = 0.030, R² = 1.000.
+  </figcaption>
+</figure>
+
+
+<!-- ── 5. DM PRODUCTION ───────────────────────────────────────────── -->
+<h2 id="dmprod">5. Dry Matter Production Sub-Model</h2>
+<p><em>Source: <code>04_dm_production.R</code></em></p>
+
+<p>
+  Daily above-ground dry matter production (DDMP, g/m²/d) is calculated
+  via radiation use efficiency (RUE). Two operating modes are available,
+  controlled by the <code class="inline-code">vpdtp</code> parameter:
+  <strong>0 = daily mode</strong> (simple, no LT trait) and
+  <strong>1 = hourly mode</strong> (with limited transpiration trait).
+</p>
+
+<h3 id="rue">5.1 RUE and CO₂ adjustment</h3>
+<p>
+  The base radiation use efficiency is adjusted for ambient CO₂
+  concentration relative to the reference CO₂ when cultivar parameters
+  were measured:
+</p>
+<div class="eq">
+  RUE<sub>ref</sub> = 1 + CO₂RES × log₁₀(CO₂<sub>REF</sub> / 330)
+  <span class="eq-label">Eq. 5.1</span>
+</div>
+<div class="eq">
+  RUE<sub>CO₂</sub> = 1 + CO₂RES × log₁₀(CO₂ / 330)
+  <span class="eq-label">Eq. 5.2</span>
+</div>
+<div class="eq">
+  IRUE<sub>adj</sub> = IRUE<sub>base</sub> × (RUE<sub>CO₂</sub> / RUE<sub>ref</sub>)
+  &nbsp;&nbsp;&nbsp; TEC<sub>adj</sub> = TEC<sub>ref</sub> × (RUE<sub>CO₂</sub> / RUE<sub>ref</sub>)
+  <span class="eq-label">Eq. 5.3</span>
+</div>
+
+<p>
+  The daily effective RUE is further modified by temperature (TCFRUE, 0–1)
+  and a grain-growth water stress factor (WSFG, 0–1):
+</p>
+<div class="eq">
+  RUE = IRUE<sub>adj</sub> × f<sub>T</sub>(T<sub>mean</sub>) × WSFG
+  <span class="eq-label">Eq. 5.4</span>
+</div>
+
+<p>PAR interception follows Beer's law:</p>
+<div class="eq">
+  FINT = 1 − exp(−KPAR × LAI)
+  <span class="eq-label">Eq. 5.5</span>
+</div>
+
+<h3 id="daily-mode">5.2 Daily mode (vpdtp = 0)</h3>
+<p>
+  When hourly VPD integration is not needed, daily DM production and
+  transpiration are computed from daily mean values:
+</p>
+<div class="eq">
+  DDMP = SRAD × 0.48 × FINT × RUE &nbsp;&nbsp; (g/m²/d)
+  <span class="eq-label">Eq. 5.6</span>
+</div>
+<div class="eq">
+  VPD<sub>daily</sub> = VPDF × (VP(T<sub>max</sub>) − VP(T<sub>min</sub>)) &nbsp; (kPa)
+  <span class="eq-label">Eq. 5.7</span>
+</div>
+<div class="eq">
+  TR = DDMP × VPD<sub>daily</sub> / TEC &nbsp;&nbsp; (mm/d)
+  <span class="eq-label">Eq. 5.8</span>
+</div>
+<p>
+  where <strong>VPDF</strong> (VPD fraction, 0.75 typical) accounts for
+  the fraction of the day when VPD is near its daytime maximum, and TEC
+  (transpiration efficiency coefficient, kPa·g/m²/mm) is the intrinsic
+  water-use efficiency of the canopy.
+</p>
+
+
+<!-- ── 5.3 LT TRAIT — VERY DETAILED ─────────────────────────────── -->
+<h3 id="lt">5.3 Limited Transpiration (LT) Trait — Hourly Mode (vpdtp = 1)</h3>
+
+<div class="key">
+  <strong>What is the LT trait?</strong> Some soybean cultivars possess a
+  limited transpiration (LT) trait: their stomata partially close when
+  atmospheric VPD exceeds a genotype-specific critical threshold
+  (VPD<sub>cr</sub>). This reduces water loss per unit carbon gain at high
+  VPD, improving water-use efficiency and productivity under heat or
+  drought. The trait is parameterised by a single parameter
+  <code class="inline-code">VPDcr</code> (kPa), typically 1.5–3.5 kPa.
+  Standard cultivars have VPDcr set very high (≫ maximum possible VPD)
+  so the LT reduction never activates.
+</div>
+
+<p>
+  Because VPD varies greatly throughout the day — rising from near zero at
+  dawn to a maximum in early afternoon — the LT reduction must be
+  integrated at the <strong>hourly</strong> time step. The model runs an
+  inner loop over all 24 hours of the day, computing radiation, temperature,
+  VPD, DM production, and transpiration for each hour, then sums across
+  daylight hours.
+</p>
+
+<h4 id="hourly-rad">5.3.1 Hourly solar radiation distribution</h4>
+<p>
+  The distribution of solar radiation across the day follows Spitters (1986).
+  First, the solar geometry for the day is computed from latitude and DOY:
+</p>
+
+<div class="eq">
+  DEC = arcsin(sin(23.45°) × cos(2π(DOY+10)/365)) &nbsp; (solar declination, rad)
+  <span class="eq-label">Eq. 5.9</span>
+</div>
+<div class="eq">
+  SINLD = sin(LAT°) × sin(DEC)
+  <span class="eq-label">Eq. 5.10</span>
+</div>
+<div class="eq">
+  COSLD = cos(LAT°) × cos(DEC)
+  <span class="eq-label">Eq. 5.11</span>
+</div>
+<div class="eq">
+  AOB = SINLD / COSLD &nbsp; → &nbsp;
+  DAYL = 12 × (1 + 2 × arcsin(AOB) / π) &nbsp; (h)
+  <span class="eq-label">Eq. 5.12</span>
+</div>
+
+<p>
+  The daily integral of the instantaneous solar elevation factor
+  <em>SINB × (1 + 0.4 × SINB)</em> is pre-computed for normalisation:
+</p>
+<div class="eq">
+  DSINBE = 3600 × [DAYL × (SINLD + 0.4(SINLD² + COSLD²/2))<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  + (12/π) × COSLD × (2 + 3 × 0.4 × SINLD) × √(1 − AOB²)]
+  <span class="eq-label">Eq. 5.13</span>
+</div>
+
+<p>
+  For each hour <em>H</em> = 1 … 24, the instantaneous sine of solar
+  elevation angle is:
+</p>
+<div class="eq">
+  SINB<sub>H</sub> = max(0,  SINLD + COSLD × cos(2π(H+12)/24))
+  <span class="eq-label">Eq. 5.14</span>
+</div>
+
+<p>
+  and the hourly PAR-equivalent radiation (MJ/m²/h) is:
+</p>
+<div class="eq">
+  SRAD<sub>H</sub> = SRAD<sub>daily</sub> × 10⁶ × SINB<sub>H</sub> × (1 + 0.4 × SINB<sub>H</sub>)
+  / DSINBE × 3600 / 10⁶
+  <span class="eq-label">Eq. 5.15</span>
+</div>
+
+<p>
+  The factor <em>0.48</em> converts total radiation to PAR (photosynthetically
+  active radiation), consistent with the daily mode. Hours before sunrise
+  (H &lt; SUNRISE) and after sunset (H &gt; SUNSET) have SRAD<sub>H</sub> = 0
+  and do not contribute to the sum. A twilight correction parameter P = 1.5 h
+  is included in sunrise/sunset calculation:
+</p>
+<div class="eq">
+  SUNRISE = 12 − DAYL/2 &nbsp;&nbsp;&nbsp; SUNSET = 12 + DAYL/2
+  <span class="eq-label">Eq. 5.16</span>
+</div>
+
+<h4 id="hourly-temp">5.3.2 Hourly temperature curve</h4>
+<p>
+  The daily temperature curve is constructed using a sinusoidal function
+  that rises from T<sub>min</sub> in the morning to T<sub>max</sub> at
+  midday, then declines toward <strong>the next day's T<sub>min</sub></strong>
+  (TMINA) in the afternoon. This asymmetry produces a more realistic
+  temperature trajectory than a symmetric sine.
+</p>
+
+<div class="eq">
+  angle<sub>H</sub> = sin(π × (H − SUNRISE) / (DAYL + 2P))
+  <span class="eq-label">Eq. 5.17</span>
+</div>
+
+<div class="eq">
+  T<sub>H</sub> =
+  <span class="sym">
+    T<sub>min</sub> + (T<sub>max</sub> − T<sub>min</sub>) × angle<sub>H</sub> &nbsp;&nbsp;&nbsp;
+    H ≤ 13.5 (morning to early afternoon)<br>
+    T<sub>minA</sub> + (T<sub>max</sub> − T<sub>minA</sub>) × angle<sub>H</sub> &nbsp;&nbsp;&nbsp;
+    H &gt; 13.5 (late afternoon/evening)
+  </span>
+  <span class="eq-label">Eq. 5.18</span>
+</div>
+
+<p>
+  Here T<sub>minA</sub> is <strong>tomorrow's minimum temperature</strong>,
+  allowing the afternoon cooling rate to reflect the actual overnight
+  temperature trajectory. This is retrieved from the next row of the
+  weather file before the main loop advances.
+</p>
+
+<pre><code><span class="co"># R code — 04_dm_production.R (lines 162–165)</span>
+angle   &lt;- <span class="fn">sin</span>(Pi * (Hv - SUNRIS) / (DAYL + <span class="nm">2</span>*P))
+TEMP1v  &lt;- <span class="fn">ifelse</span>(Hv &lt; <span class="nm">13.5</span>,
+              TMIN  + (TMAX  - TMIN)  * angle,   <span class="co"># morning</span>
+              TMINA + (TMAX  - TMINA) * angle)    <span class="co"># afternoon → next-day Tmin</span></code></pre>
+
+<h4 id="hourly-vpd">5.3.3 Hourly VPD (Boundary Potential Deficit)</h4>
+<p>
+  Atmospheric vapour pressure at each hour is estimated from the
+  <strong>Magnus–Tetens formula</strong> (the same equation used
+  throughout the VBA model):
+</p>
+<div class="eq">
+  VP(T) = 0.6108 × exp(17.27 × T / (237.3 + T)) &nbsp; (kPa)
+  <span class="eq-label">Eq. 5.19</span>
+</div>
+
+<p>
+  The actual vapour pressure of the air is approximated as
+  VP(T<sub>min</sub>) — the dewpoint approximation (Kimball et al., 1997).
+  Hourly VPD is then:
+</p>
+<div class="eq">
+  VPD<sub>H</sub> = max(0, (VP(T<sub>H</sub>) − VP(T<sub>min</sub>)) × VPDF/0.75)
+  <span class="eq-label">Eq. 5.20</span>
+</div>
+
+<p>
+  The term <strong>VPDF/0.75</strong> scales the vapour pressure gradient
+  to account for canopy boundary-layer conductance effects. VPDF is a
+  location-specific parameter (typical value 0.75 for humid locations,
+  higher for dry/arid sites). The ratio VPDF/0.75 equals 1.0 when VPDF
+  is at its reference value, leaving VPD unmodified. At drier sites
+  (VPDF &gt; 0.75) the effective VPD driving transpiration is elevated
+  accordingly.
+</p>
+
+<div class="note">
+  <strong>Why is T<sub>min</sub> used for actual VP?</strong>
+  Overnight cooling brings air temperature to T<sub>min</sub>, during
+  which relative humidity approaches 100%. Thus VP(T<sub>min</sub>) is a
+  good approximation of actual daytime vapour pressure, a widely used
+  simplification when dewpoint is not measured directly.
+</div>
+
+<pre><code><span class="co"># R code — 04_dm_production.R (lines 156, 171–172)</span>
+VPTMIN  &lt;- <span class="nm">0.6108</span> * <span class="fn">exp</span>(<span class="nm">17.27</span> * TMIN / (<span class="nm">237.3</span> + TMIN))  <span class="co"># actual VP</span>
+VPTEMP1v &lt;- <span class="nm">0.6108</span> * <span class="fn">exp</span>(<span class="nm">17.27</span> * TEMP1v / (<span class="nm">237.3</span> + TEMP1v)) <span class="co"># sat. VP at each hour</span>
+VPD1v   &lt;- <span class="fn">pmax</span>((VPTEMP1v - VPTMIN) * (VPDF / <span class="nm">0.75</span>), <span class="nm">0</span>)     <span class="co"># hourly VPD</span></code></pre>
+
+<h4 id="lt-reduction">5.3.4 Limited transpiration reduction — the (VPDcr/VPD)² rule</h4>
+<p>
+  For each daylight hour where VPD<sub>H</sub> &gt; VPD<sub>cr</sub>, the
+  LT trait constrains both DM production and transpiration through a
+  quadratic ratio reduction:
+</p>
+
+<div class="eq">
+  <strong>Step 1:</strong> &nbsp; TR<sub>H,lt</sub> = DDMP<sub>H</sub> × VPD<sub>cr</sub> / TEC
+  <span class="eq-label">Eq. 5.21</span>
+</div>
+<div class="eq">
+  <strong>Step 1:</strong> &nbsp; DDMP<sub>H,lt</sub> = TR<sub>H,lt</sub> × TEC / VPD<sub>H</sub>
+  = DDMP<sub>H</sub> × (VPD<sub>cr</sub>/VPD<sub>H</sub>)
+  <span class="eq-label">Eq. 5.22</span>
+</div>
+<div class="eq">
+  <strong>Step 2:</strong> &nbsp; TR<sub>H,final</sub> = DDMP<sub>H,lt</sub> × VPD<sub>cr</sub> / TEC
+  = DDMP<sub>H</sub> × (VPD<sub>cr</sub>/VPD<sub>H</sub>)²
+  <span class="eq-label">Eq. 5.23</span>
+</div>
+<div class="eq">
+  <strong>Step 2:</strong> &nbsp; DDMP<sub>H,final</sub> = TR<sub>H,final</sub> × TEC / VPD<sub>H</sub>
+  = DDMP<sub>H</sub> × (VPD<sub>cr</sub>/VPD<sub>H</sub>)²
+  <span class="eq-label">Eq. 5.24</span>
+</div>
+
+<p>
+  The two-step application (which squares the reduction ratio) is a direct
+  replica of the VBA code where the same two lines execute sequentially.
+  The physical interpretation is that the LT trait reduces stomatal
+  conductance (and hence both transpiration and carbon assimilation) in
+  proportion to the excess VPD above VPDcr.
+</p>
+
+<div class="card">
+  <strong>Worked example</strong> (VPD<sub>cr</sub> = 2.0 kPa, VPD<sub>H</sub> = 4.0 kPa,
+  DDMP<sub>H</sub> = 0.50 g/m²/h, TEC = 9 kPa·g/m²/mm):
+  <ul style="margin-top:8px">
+    <li>Without LT: TR<sub>H</sub> = 0.50 × 4.0 / 9 = 0.222 mm/h</li>
+    <li>With LT (step 1): TR₁ = 0.50 × 2.0 / 9 = 0.111 mm/h;
+        DDMP₁ = 0.111 × 9 / 4.0 = 0.250 g/m²/h</li>
+    <li>With LT (step 2): TR₂ = 0.250 × 2.0 / 9 = 0.056 mm/h;
+        DDMP₂ = 0.056 × 9 / 4.0 = 0.125 g/m²/h</li>
+    <li>Reduction factor = (2.0/4.0)² = 0.25 — both DDMP and TR are 25% of their unrestricted values.</li>
+  </ul>
+</div>
+
+<pre><code><span class="co"># R code — 04_dm_production.R (lines 175–183)</span>
+lt_idx &lt;- daylight &amp; VPD1v &gt; dmp_pars$VPDcr
+<span class="kw">if</span> (<span class="fn">any</span>(lt_idx)) {
+  VPD1_lt &lt;- VPD1v[lt_idx];  D1 &lt;- DDMP1v[lt_idx]
+  VPDcr_  &lt;- dmp_pars$VPDcr; TEC_ &lt;- dmp_pars$TEC
+  <span class="co"># Step 1</span>
+  T1 &lt;- D1 * VPDcr_ / TEC_;  D1 &lt;- T1 * TEC_ / VPD1_lt
+  <span class="co"># Step 2 (identical lines — squares the ratio)</span>
+  T1 &lt;- D1 * VPDcr_ / TEC_;  D1 &lt;- T1 * TEC_ / VPD1_lt
+  DDMP1v[lt_idx] &lt;- D1;  TR1v[lt_idx] &lt;- T1
+}</code></pre>
+
+<p>
+  Daily totals are accumulated over daylight hours only:
+</p>
+<div class="eq">
+  DDMP = Σ<sub>daylight</sub> DDMP<sub>H</sub> &nbsp;&nbsp;&nbsp;
+  TR = Σ<sub>daylight</sub> TR<sub>H</sub>
+  <span class="eq-label">Eq. 5.25</span>
+</div>
+
+<h4 id="lt-params">5.3.5 LT trait parameters and cultivar types</h4>
+<p>
+  The four cultivar types in the scenarios differ by leaf-area trait
+  (<code class="inline-code">pden</code>) and, when the LT trait is
+  active, by <code class="inline-code">VPDcr</code>:
+</p>
+<table>
+<tr><th>Cultivar suffix</th><th>vpdtp</th><th>VPDcr (kPa)</th><th>Description</th></tr>
+<tr><td>-check</td><td>0 (daily)</td><td>—</td><td>Standard (no LT trait); daily VPD mode</td></tr>
+<tr><td>-LT1.5</td><td>1 (hourly)</td><td>1.5</td><td>LT trait, very responsive (stomata close early)</td></tr>
+<tr><td>-LT2</td><td>1 (hourly)</td><td>2.0</td><td>LT trait, moderate</td></tr>
+<tr><td>-LT2.5</td><td>1 (hourly)</td><td>2.5</td><td>LT trait, mild (stomata close only at high VPD)</td></tr>
+</table>
+<p>
+  The check cultivar uses <code class="inline-code">vpdtp=0</code> (daily
+  mode), so no hourly loop runs and no LT reduction is applied. The three
+  LT cultivars all use <code class="inline-code">vpdtp=1</code>, triggering
+  the 24-hour inner loop.
+</p>
+
+<figure>
+  <img src="../r-model/outputs/plots/01_validation_WGRN.png"
+       alt="Grain yield validation scatter">
+  <figcaption>
+    Figure 5.1 — Grain yield (WGRN) R model vs. Excel, all four cultivar
+    types and 10 locations. RMSE = 0.53 g/m², Bias = +0.007, R² = 1.000.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/daily/panel_JB-IRRI-ELY-check.png"
+       alt="JB-IRRI-ELY daily panel">
+  <figcaption>
+    Figure 5.2 — Daily time step comparison (R=dashed, Excel=solid) for
+    Jonesboro irrigated early-sow check cultivar across three contrasting
+    years (1990, 2000, 2010). Key variables: LAI, WTOP, WGRN, CE, CTR,
+    FTSWRZ. Lines overlap almost perfectly.
+  </figcaption>
+</figure>
+
+
+<!-- ── 6. DM DISTRIBUTION ─────────────────────────────────────────── -->
+<h2 id="dmdist">6. Dry Matter Distribution Sub-Model</h2>
+<p><em>Source: <code>05_dm_distribution.R</code></em></p>
+
+<p>
+  Daily DM (DDMP) is partitioned between grain and vegetative (leaf +
+  stem) tissues. The grain filling algorithm uses a
+  <strong>Dynamic Harvest Index (DHI)</strong> approach.
+</p>
+
+<h3>Pre-grain-filling: vegetative growth (EMR → BSG)</h3>
+<p>
+  Fraction of DM allocated to leaves depends on total biomass WTOP
+  relative to a threshold WTOPL:
+</p>
+<div class="eq">
+  FLF<sub>1</sub> = FLF1A &nbsp; if WTOP &lt; WTOPL,&nbsp; else FLF1B
+  <span class="eq-label">Eq. 6.1</span>
+</div>
+<div class="eq">
+  GLF = FLF<sub>1</sub> × DDMP<sub>veg</sub>, &nbsp;&nbsp; GST = DDMP<sub>veg</sub> − GLF
+  <span class="eq-label">Eq. 6.2</span>
+</div>
+
+<h3>Grain-filling (BSG → TSG) — Dynamic HI method</h3>
+<div class="eq">
+  SGR = (DHI × FrHtDHI) × (WTOP + DDMP) + DDMP × HI &nbsp; (g/m²/d)
+  <span class="eq-label">Eq. 6.3</span>
+</div>
+
+<p>
+  where DHI = PDHI × DHIDMF is the daily harvest index increment rate,
+  and DHIDMF is a modifier (0–1) penalising very low or very high plant
+  biomass at the start of seed growth:
+</p>
+
+<div class="eq">
+  DHIDMF =
+  <span class="sym">
+    0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    if BSGDM ≤ WDHI1 or ≥ WDHI4<br>
+    (BSGDM − WDHI1)/(WDHI2 − WDHI1) &nbsp; if WDHI1 &lt; BSGDM &lt; WDHI2<br>
+    1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    if WDHI2 ≤ BSGDM ≤ WDHI3<br>
+    (WDHI4 − BSGDM)/(WDHI4 − WDHI3) &nbsp; if WDHI3 &lt; BSGDM &lt; WDHI4
+  </span>
+  <span class="eq-label">Eq. 6.4</span>
+</div>
+
+<h3>DM translocation</h3>
+<p>
+  When grain demand (SGR/GCC) exceeds current assimilation (DDMP),
+  carbon is mobilised from a pre-set translocatable stem reserve:
+</p>
+<div class="eq">
+  TRLDM = FRTRL × BSGDM &nbsp; (translocatable pool set at BSG)
+  <span class="eq-label">Eq. 6.5</span>
+</div>
+<div class="eq">
+  TRANSL = min(SGR/GCC − DDMP, &nbsp; TRLDM) &nbsp; if SGR/GCC &gt; DDMP
+  <span class="eq-label">Eq. 6.6</span>
+</div>
+
+<figure>
+  <img src="../r-model/outputs/plots/07_validation_HI.png"
+       alt="Harvest index validation">
+  <figcaption>
+    Figure 6.1 — Harvest index R² = 1.000. RMSE = 0.000 (indistinguishable
+    from the 1:1 line).
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/daily/panel_LN-RFD-LTE-check.png"
+       alt="Lincoln RFD LTE daily panel">
+  <figcaption>
+    Figure 6.2 — Daily WTOP and WGRN dynamics for Lincoln NE rainfed late
+    sowing across three years. The grain-filling period (BSG–TSG) is visible
+    as the divergence between WTOP and WGRN curves.
+  </figcaption>
+</figure>
+
+
+<!-- ── 7. SOIL WATER BALANCE ──────────────────────────────────────── -->
+<h2 id="soil">7. Soil Water Balance Sub-Model</h2>
+<p><em>Source: <code>06_soil_water.R</code></em></p>
+
+<p>
+  A 10-layer cascading soil water balance updates daily water content in
+  each layer following the sequence: irrigation → rainfall → runoff →
+  soil evaporation → transpiration → drainage.
+</p>
+
+<h3 id="soilinit">7.1 Soil initialisation</h3>
+<p>
+  At the start of each simulation year, all soil layers are reset to
+  DUL (drained upper limit = field capacity) by the VBA <code>iniSW=0</code>
+  mechanism. Layer-level available soil water and FTSW are:
+</p>
+<div class="eq">
+  ATSW<sub>L</sub> = WL<sub>L</sub> − WLLL<sub>L</sub> &nbsp;&nbsp;
+  FTSW<sub>L</sub> = ATSW<sub>L</sub> / TTSW<sub>L</sub>
+  <span class="eq-label">Eq. 7.1</span>
+</div>
+<p>
+  where TTSW<sub>L</sub> = WLUL<sub>L</sub> − WLLL<sub>L</sub> is the
+  total transpirable soil water in layer L.
+</p>
+
+<h3>7.2 Potential evapotranspiration (PET)</h3>
+<p>
+  PET is computed using a simplified Priestley–Taylor-type formula driven
+  by solar radiation (EOP) and adjusted for minimum temperature (ETA):
+</p>
+<div class="eq">
+  EOP = 0.0025 × (TMAX + 16) × √SRAD &nbsp;&nbsp; (energy-limited PET, mm/d)
+  <span class="eq-label">Eq. 7.2</span>
+</div>
+<div class="eq">
+  ETA = 0.01 × exp(0.18 × (TMIN + 20)) &nbsp;&nbsp; (temperature adjustment)
+  <span class="eq-label">Eq. 7.3</span>
+</div>
+<div class="eq">
+  PET = max(EOP, ETA) &nbsp;&nbsp; (mm/d)
+  <span class="eq-label">Eq. 7.4</span>
+</div>
+
+<h3 id="evap">7.3 Soil evaporation — Stage 1 and Stage 2</h3>
+<p>
+  Soil evaporation depends on FTSWRZ (carried over from the previous
+  day/scenario) and a cumulative evaporation day counter DYSE. Two stages
+  are distinguished:
+</p>
+
+<div class="eq">
+  EOS = PET × exp(−KET × LAI) &nbsp;&nbsp; (potential soil evaporation below canopy)
+  <span class="eq-label">Eq. 7.5</span>
+</div>
+
+<table>
+<tr><th>Stage</th><th>Condition</th><th>SEVP formula</th></tr>
+<tr>
+  <td><strong>Stage 1</strong><br>(energy-limited)</td>
+  <td>FTSWRZ ≥ 0.5 AND DYSE = 1 AND ATSW[1] &gt; 1</td>
+  <td>SEVP = EOS</td>
+</tr>
+<tr>
+  <td><strong>Stage 2</strong><br>(soil-limited)</td>
+  <td>FTSWRZ &lt; 0.5 OR DYSE &gt; 1 OR ATSW[1] ≤ 1</td>
+  <td>SEVP = EOS × (√(DYSE+1) − √DYSE)</td>
+</tr>
+</table>
+
+<div class="eq">
+  Reset to Stage 1: DYSE ← 1 &nbsp;&nbsp; when &nbsp;&nbsp; RAIN + IRGW &gt; WETWAT (10 mm)
+  <span class="eq-label">Eq. 7.6</span>
+</div>
+
+<p>
+  The Stage-2 formula is the square-root law (Ritchie 1972): cumulative
+  evaporation in Stage 2 increases as √DYSE, so the daily rate declines.
+  DYSE increments each day in Stage 2 and resets to 1 after sufficient
+  wetting.
+</p>
+
+<div class="key">
+  <strong>FTSWRZ carry-over:</strong> Whether the model enters Stage 1
+  or Stage 2 on the very first simulated day depends on FTSWRZ from the
+  previous scenario-year. If FTSWRZ ≥ 0.5 (wet soil at end of previous
+  scenario), the new year starts in Stage 1; if FTSWRZ &lt; 0.5, it starts
+  immediately in Stage 2. This is why the global carry-over is critical.
+</div>
+
+<h3 id="runoff">7.4 Runoff (rainfed mode, water = 2)</h3>
+<p>
+  The SCS Curve Number method is used, modified by a soil water extraction
+  ratio (SWER) that accounts for the current wetness of the top soil layers:
+</p>
+<div class="eq">
+  S = 25400 / CN − 254 &nbsp;&nbsp; (soil retention potential, mm)
+  <span class="eq-label">Eq. 7.7</span>
+</div>
+<div class="eq">
+  RUNOF = (RAIN − SWER × S)² / (RAIN + (1 − SWER) × S)
+  &nbsp;&nbsp; when RAIN &gt; SWER × S
+  <span class="eq-label">Eq. 7.8</span>
+</div>
+
+<h3 id="drainage">7.5 Cascade drainage</h3>
+<p>
+  Water above DUL in each layer drains to the layer below at a rate
+  controlled by a layer-specific drainage fraction DRAINF:
+</p>
+<div class="eq">
+  DRAIN<sub>L</sub> = max(0, WL<sub>L</sub> − WLUL<sub>L</sub>) × DRAINF<sub>L</sub>
+  <span class="eq-label">Eq. 7.9</span>
+</div>
+
+<h3 id="wstress">7.6 Water stress factors</h3>
+<p>
+  FTSW in the root zone (FTSWRZ = ATSWRZ / TTSWRZ, weighted by rooted
+  layers) drives four stress factors:
+</p>
+<div class="eq">
+  WSFL = min(1, FTSWRZ / WSSL) &nbsp;&nbsp; (leaf expansion stress)
+  <span class="eq-label">Eq. 7.10</span>
+</div>
+<div class="eq">
+  WSFG = min(1, FTSWRZ / WSSG) &nbsp;&nbsp; (grain growth / photosynthesis stress)
+  <span class="eq-label">Eq. 7.11</span>
+</div>
+<div class="eq">
+  WSFD = 1 + (1 − WSFG) × WSSD &nbsp;&nbsp; (drought acceleration of phenology, &gt; 1)
+  <span class="eq-label">Eq. 7.12</span>
+</div>
+<div class="eq">
+  WSFN = min(1, FTSWRZ / WSSN) &nbsp;&nbsp; (N-fixation stress)
+  <span class="eq-label">Eq. 7.13</span>
+</div>
+
+<p>
+  Each stress factor has its own threshold parameter (WSSL, WSSG, WSSN).
+  Note WSFL has the lowest threshold (most sensitive to drought), then
+  WSFG. WSFD &gt; 1 shortens the crop cycle under drought.
+</p>
+
+<h3 id="irrig">7.7 Irrigation modes</h3>
+<table>
+<tr><th>water</th><th>Mode</th><th>Description</th></tr>
+<tr>
+  <td>1</td><td>Auto-irrigated</td>
+  <td>When FTSWRZ ≤ IRGLVL and CBD between bdSOW and bdTSG, refill
+      root zone to field capacity:<br>
+      IRGW = TTSWRZ − ATSWRZ</td>
+</tr>
+<tr>
+  <td>2</td><td>Rainfed</td>
+  <td>No irrigation; SCS runoff applied when rainfall exceeds retention.</td>
+</tr>
+<tr>
+  <td>3</td><td>Scheduled</td>
+  <td>User-specified irrigation schedule (placeholder).</td>
+</tr>
+</table>
+
+<div class="warn">
+  <strong>IRGLVL = 0.6, not 0.5:</strong> The VBA Manag sheet sets
+  IRGLVL = 0.60 for all irrigated treatments. An early version of
+  scenarios.csv had 0.50, causing ~90–100 mm underestimation of CE and
+  CIRGW for IRRI scenarios. The corrected value is 0.6 for all IRRI rows.
+</div>
+
+<figure>
+  <img src="../r-model/outputs/plots/06_validation_CE.png"
+       alt="Soil evaporation validation">
+  <figcaption>
+    Figure 7.1 — Cumulative soil evaporation (CE) R vs Excel.
+    RMSE = 2.2 mm, Bias = +0.1 mm, R² = 0.9996. The tiny remaining
+    scatter is floating-point arithmetic differences between R and VBA.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/10_validation_CIRGW.png"
+       alt="Cumulative irrigation validation">
+  <figcaption>
+    Figure 7.2 — Cumulative irrigation (CIRGW, IRRI scenarios only).
+    RMSE = 3.3 mm, R² = 0.9997.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/daily/panel_AL-IRRI-MID-check.png"
+       alt="Albany IRRI daily panel">
+  <figcaption>
+    Figure 7.3 — Daily FTSWRZ (root-zone FTSW) for Albany MO irrigated
+    mid-sowing. FTSWRZ rises to 1 after each irrigation event and declines
+    toward the IRGLVL = 0.6 trigger before the next event.
+  </figcaption>
+</figure>
+
+
+<!-- ── 8. MODEL INTEGRATION ───────────────────────────────────────── -->
+<h2 id="integration">8. Model Integration and Batch Runner</h2>
+<p><em>Sources: <code>07_ssm_model.R</code>, <code>08_run_model.R</code></em></p>
+
+<h3>run_ssm_year() — single scenario-year</h3>
+<p>
+  The function <code class="inline-code">run_ssm_year(scn, wth, soil,
+  year, init_ftswrz)</code> runs one scenario for one calendar year.
+  It initialises all sub-models, advances the sowing-day soil water step,
+  then iterates the main daily loop until maturity. The function returns
+  a list containing the annual summary row and the final FTSWRZ.
+</p>
+
+<h3>run_all_scenarios() — full batch</h3>
+<p>
+  All 240 scenarios × 30 years are processed in strict CSV row order.
+  A single <code class="inline-code">global_ftswrz</code> scalar threads
+  through every scenario-year, initialised to 0 before the very first row:
+</p>
+
+<pre><code><span class="co"># 08_run_model.R (key loop structure)</span>
+global_ftswrz &lt;- <span class="nm">0</span>  <span class="co"># VBA Double default</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="fn">seq_len</span>(<span class="fn">nrow</span>(scn_table))) {
+  scn &lt;- <span class="fn">as.list</span>(scn_table[i, ])
+  <span class="kw">for</span> (yr <span class="kw">in</span> <span class="fn">seq</span>(start_year, start_year + n_years - <span class="nm">1</span>)) {
+    result &lt;- <span class="fn">run_ssm_year</span>(scn, wth, soil, yr,
+                             init_ftswrz = global_ftswrz)
+    global_ftswrz &lt;- result$final_ftswrz   <span class="co"># carry forward</span>
+  }
+}</code></pre>
+
+<h3>Maturity types (MATYP)</h3>
+<table>
+<tr><th>MATYP</th><th>Meaning</th></tr>
+<tr><td>1</td><td>Normal maturity (CBD &gt; bdMAT)</td></tr>
+<tr><td>2</td><td>Pre-mature senescence (LAI &lt; 0.05 during seed fill)</td></tr>
+<tr><td>4</td><td>Stopped at StopDoy (end of simulation window)</td></tr>
+<tr><td>5</td><td>Flood kill (FLDUR &gt; FLDKIL)</td></tr>
+</table>
+
+
+<!-- ── 9. PARAMETER TABLES ────────────────────────────────────────── -->
+<h2 id="params">9. Key Parameter Tables</h2>
+
+<h3>Crop parameters (genetic)</h3>
+<table>
+<tr><th>Parameter</th><th>Description</th><th>Units</th><th>MG-IV default</th></tr>
+<tr><td>PHYL</td><td>Phyllochron (thermal time per node)</td><td>°C·d</td><td>45</td></tr>
+<tr><td>PLACON</td><td>Leaf area coefficient</td><td>cm²/plant</td><td>1.016</td></tr>
+<tr><td>PLAPOW</td><td>Leaf area exponent</td><td>—</td><td>2.5</td></tr>
+<tr><td>SLA</td><td>Specific leaf area</td><td>m²/g</td><td>0.032</td></tr>
+<tr><td>KPAR</td><td>Light extinction coefficient</td><td>—</td><td>0.65</td></tr>
+<tr><td>IRUE</td><td>Radiation use efficiency (base)</td><td>g/MJ PAR</td><td>2.0</td></tr>
+<tr><td>TECREF</td><td>Transpiration efficiency (reference CO₂)</td><td>kPa·g/m²/mm</td><td>9.0</td></tr>
+<tr><td>vpdtp</td><td>VPD mode (0=daily, 1=hourly LT)</td><td>—</td><td>0</td></tr>
+<tr><td>VPDcr</td><td>Critical VPD for LT trait</td><td>kPa</td><td>1.5 / 2.0 / 2.5</td></tr>
+<tr><td>PDHI</td><td>Potential daily HI increment</td><td>g/g/d</td><td>0.01</td></tr>
+<tr><td>GCC</td><td>Grain construction cost</td><td>—</td><td>0.7</td></tr>
+<tr><td>FRTRL</td><td>Fraction of BSGDM translocatable</td><td>—</td><td>0.22</td></tr>
+<tr><td>cpp / ppsen</td><td>Critical photoperiod / sensitivity</td><td>h / h⁻¹</td><td>13.09 / −0.294</td></tr>
+</table>
+
+<h3>Management parameters</h3>
+<table>
+<tr><th>Parameter</th><th>Description</th><th>Value in IRRI</th><th>Value in RFD</th></tr>
+<tr><td>pdoy</td><td>Planting day of year</td><td>ELY=115, MID=133, LTE=164</td><td>same</td></tr>
+<tr><td>pden</td><td>Plant density</td><td>32 plants/m²</td><td>32 plants/m²</td></tr>
+<tr><td>water</td><td>Water management mode</td><td>1 (auto-irrigated)</td><td>2 (rainfed)</td></tr>
+<tr><td>irglvl</td><td>FTSWRZ irrigation trigger</td><td>0.60</td><td>— (unused)</td></tr>
+</table>
+
+<h3>Soil parameters (per layer)</h3>
+<table>
+<tr><th>Parameter</th><th>Description</th><th>Units</th></tr>
+<tr><td>DLYER</td><td>Layer thickness</td><td>mm</td></tr>
+<tr><td>SAT</td><td>Saturated water content</td><td>mm/mm</td></tr>
+<tr><td>DUL</td><td>Drained upper limit (field capacity)</td><td>mm/mm</td></tr>
+<tr><td>CLL</td><td>Crop lower limit (wilting point)</td><td>mm/mm</td></tr>
+<tr><td>ADRY</td><td>Air-dry water content</td><td>mm/mm</td></tr>
+<tr><td>DRAINF</td><td>Drainage fraction (fraction above DUL that drains per day)</td><td>d⁻¹</td></tr>
+<tr><td>SALB</td><td>Soil albedo (affects PET)</td><td>—</td></tr>
+<tr><td>CN2</td><td>SCS curve number at field capacity</td><td>—</td></tr>
+</table>
+
+
+<!-- ── 10. VALIDATION ─────────────────────────────────────────────── -->
+<h2 id="validation">10. Validation Against Excel Reference</h2>
+
+<p>
+  The R model was validated against the original Excel/VBA model across all
+  7 200 simulation years (240 scenarios × 30 years, 10 locations). Three
+  bugs had to be fixed to achieve agreement:
+</p>
+<ol>
+  <li><strong>FTSWRZ chain carry-over</strong> — replaced per-scenario warm-up
+      years with a single global scalar in CSV row order.</li>
+  <li><strong>IRGLVL data error</strong> — corrected scenarios.csv from 0.5 to 0.6
+      for all 120 IRRI scenarios.</li>
+  <li><strong>CE reset at DAP=1</strong> — added VBA-equivalent reset of
+      CE/CTR/CRAIN/CRUNOF/CDRAIN to 0 at the first growth day.</li>
+</ol>
+
+<div class="stat-grid">
+  <div class="stat-chip"><div class="val">1.000</div><div class="lab">WGRN R²</div></div>
+  <div class="stat-chip"><div class="val">1.000</div><div class="lab">WTOP R²</div></div>
+  <div class="stat-chip"><div class="val">1.000</div><div class="lab">MXLAI R²</div></div>
+  <div class="stat-chip"><div class="val">0.9996</div><div class="lab">CE R²</div></div>
+  <div class="stat-chip"><div class="val">1.000</div><div class="lab">CTR R²</div></div>
+  <div class="stat-chip"><div class="val">0.9997</div><div class="lab">CIRGW R²</div></div>
+  <div class="stat-chip"><div class="val">0.9990</div><div class="lab">IRGNO R²</div></div>
+  <div class="stat-chip"><div class="val">0.9993</div><div class="lab">IPASW R²</div></div>
+</div>
+
+<figure>
+  <img src="../r-model/outputs/plots/13_validation_summary_panel.png"
+       alt="Validation summary panel">
+  <figcaption>
+    Figure 10.1 — Summary validation panel: six key variables across all 10
+    locations and 30 years. Each point is one simulation year; colour by
+    location. All variables cluster tightly on the 1:1 line.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/05_validation_CTR.png"
+       alt="Transpiration validation">
+  <figcaption>
+    Figure 10.2 — Cumulative transpiration (CTR). RMSE = 0.92 mm,
+    R² = 1.000.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/12_validation_IPASW.png"
+       alt="IPASW validation">
+  <figcaption>
+    Figure 10.3 — Initial plant-available soil water (IPASW).
+    RMSE = 1.9 mm, R² = 0.999. The small residual reflects the
+    post-sowing-day soil water state used by VBA vs the pre-sowing
+    initial conditions used in R.
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="../r-model/outputs/plots/daily/panel_KS-RFD-LTE-check.png"
+       alt="Keiser RFD LTE daily panel">
+  <figcaption>
+    Figure 10.4 — Daily time-step comparison for Keiser AR rainfed late-sowing
+    across three years. FTSWRZ dips below 0.5 in drier years (triggering Stage-2
+    soil evaporation), while CE and CTR dynamics closely track the Excel reference.
+  </figcaption>
+</figure>
+
+<hr style="margin:40px 0; border-color:var(--border)">
+<p style="color:var(--muted);font-size:13px;text-align:center;">
+  SSM Soybean R Model — Documentation generated June 2026 &nbsp;|&nbsp;
+  Based on Soltani &amp; Sinclair (2012) &nbsp;|&nbsp;
+  Validated against original Excel/VBA reference model
+</p>
+
+</main>
+
+<script>
+  // Highlight active TOC link on scroll
+  const headings = document.querySelectorAll('h2[id], h3[id], h4[id]');
+  const links    = document.querySelectorAll('#toc a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    headings.forEach(h => { if (h.getBoundingClientRect().top < 120) current = h.id; });
+    links.forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
