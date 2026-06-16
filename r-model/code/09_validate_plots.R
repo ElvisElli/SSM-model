@@ -298,6 +298,9 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
     R_CE      = as.numeric(r_matched$CE),
     R_CTR     = as.numeric(r_matched$CTR),
     R_CRAIN   = as.numeric(r_matched$CRAIN),
+    R_CIRGW   = as.numeric(r_matched$CIRGW),
+    R_IRGNO   = as.numeric(r_matched$IRGNO),
+    R_IPASW   = as.numeric(r_matched$IPASW),
     R_HI      = as.numeric(r_matched$HI),
     R_Ywet    = as.numeric(r_matched$Ywet),
     # Reference outputs
@@ -309,6 +312,9 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
     Ref_CE    = as.numeric(ref_matched$CE),
     Ref_CTR   = as.numeric(ref_matched$CTR),
     Ref_CRAIN = as.numeric(ref_matched$CRAIN),
+    Ref_CIRGW = as.numeric(ref_matched$CIRGW),
+    Ref_IRGNO = as.numeric(ref_matched$IRGNO),
+    Ref_IPASW = as.numeric(ref_matched$IPASW),
     Ref_HI    = as.numeric(ref_matched$HI),
     Ref_Ywet  = as.numeric(ref_matched$Ywet),
     stringsAsFactors = FALSE
@@ -421,7 +427,41 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
   cat("  Saved: 09_validation_Ywet.png\n")
 
   # ----------------------------------------------------------
-  # PLOT 10: Summary panel (2×3 grid of key variables)
+  # PLOT 10: Cumulative irrigation water (CIRGW) — IRRI scenarios only
+  # ----------------------------------------------------------
+  cmp_irri <- cmp[grepl("IRRI", cmp$sName), ]
+  p10a <- plot_11_scatter(cmp_irri, "Ref_CIRGW", "R_CIRGW",
+                          "Cumulative Irrigation (CIRGW) — IRRI scenarios",
+                          "Excel model (mm)", "R model (mm)",
+                          color_var = "Location")
+  ggsave(file.path(plots_dir, "10_validation_CIRGW.png"), p10a,
+         width = 7, height = 6, dpi = 150)
+  cat("  Saved: 10_validation_CIRGW.png\n")
+
+  # ----------------------------------------------------------
+  # PLOT 11: Irrigation events (IRGNO) — IRRI scenarios only
+  # ----------------------------------------------------------
+  p11a <- plot_11_scatter(cmp_irri, "Ref_IRGNO", "R_IRGNO",
+                          "Irrigation Events (IRGNO) — IRRI scenarios",
+                          "Excel model (count)", "R model (count)",
+                          color_var = "Location")
+  ggsave(file.path(plots_dir, "11_validation_IRGNO.png"), p11a,
+         width = 7, height = 6, dpi = 150)
+  cat("  Saved: 11_validation_IRGNO.png\n")
+
+  # ----------------------------------------------------------
+  # PLOT 12: Initial plant-available soil water (IPASW)
+  # ----------------------------------------------------------
+  p12a <- plot_11_scatter(cmp, "Ref_IPASW", "R_IPASW",
+                          "Initial Plant-Available Soil Water (IPASW)",
+                          "Excel model (mm)", "R model (mm)",
+                          color_var = "Location")
+  ggsave(file.path(plots_dir, "12_validation_IPASW.png"), p12a,
+         width = 7, height = 6, dpi = 150)
+  cat("  Saved: 12_validation_IPASW.png\n")
+
+  # ----------------------------------------------------------
+  # PLOT 13: Summary panel (2×3 grid of key variables)
   # ----------------------------------------------------------
   p_panel <- grid.arrange(
     p1 + theme(legend.position = "none"),
@@ -433,9 +473,9 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
     ncol = 3,
     top = "SSM Soybean Model - R vs Excel Validation (10 locations, 30 years)"
   )
-  ggsave(file.path(plots_dir, "10_validation_summary_panel.png"), p_panel,
+  ggsave(file.path(plots_dir, "13_validation_summary_panel.png"), p_panel,
          width = 14, height = 9, dpi = 150)
-  cat("  Saved: 10_validation_summary_panel.png\n")
+  cat("  Saved: 13_validation_summary_panel.png\n")
 
   # ----------------------------------------------------------
   # PLOT 11: Per-location RMSE bar chart for WGRN
@@ -460,9 +500,9 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
          x = NULL, y = "RMSE (g/m²)") +
     theme_bw(base_size = 11) +
     theme(legend.position = "none")
-  ggsave(file.path(plots_dir, "11_rmse_by_location.png"), p11,
+  ggsave(file.path(plots_dir, "14_rmse_by_location.png"), p11,
          width = 7, height = 5, dpi = 150)
-  cat("  Saved: 11_rmse_by_location.png\n")
+  cat("  Saved: 14_rmse_by_location.png\n")
 
   # ----------------------------------------------------------
   # PLOT 12: Residual plot (R - Ref) for WGRN vs Ref_WGRN
@@ -475,27 +515,30 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
     labs(title = "Grain Yield Residuals (R model - Excel model)",
          x = "Excel model WGRN (g/m²)", y = "Residual (g/m²)") +
     theme_bw(base_size = 11)
-  ggsave(file.path(plots_dir, "12_residuals_WGRN.png"), p12,
+  ggsave(file.path(plots_dir, "15_residuals_WGRN.png"), p12,
          width = 8, height = 5, dpi = 150)
-  cat("  Saved: 12_residuals_WGRN.png\n")
+  cat("  Saved: 15_residuals_WGRN.png\n")
 
   # ----------------------------------------------------------
   # Save statistics table
   # ----------------------------------------------------------
   var_pairs <- list(
-    list(r = "R_WGRN",  ref = "Ref_WGRN",  name = "Grain Yield (g/m²)"),
-    list(r = "R_WTOP",  ref = "Ref_WTOP",  name = "Total DM (g/m²)"),
-    list(r = "R_MXLAI", ref = "Ref_MXLAI", name = "Max LAI (m²/m²)"),
-    list(r = "R_dtR8",  ref = "Ref_dtR8",  name = "Days to Maturity"),
-    list(r = "R_dtR5",  ref = "Ref_dtR5",  name = "Days to R5"),
-    list(r = "R_CE",    ref = "Ref_CE",    name = "Soil Evaporation (mm)"),
-    list(r = "R_CTR",   ref = "Ref_CTR",   name = "Transpiration (mm)"),
-    list(r = "R_HI",    ref = "Ref_HI",    name = "Harvest Index"),
-    list(r = "R_Ywet",  ref = "Ref_Ywet",  name = "Wet Yield (kg/ha)")
+    list(r = "R_WGRN",  ref = "Ref_WGRN",  name = "Grain Yield (g/m²)",          data = cmp),
+    list(r = "R_WTOP",  ref = "Ref_WTOP",  name = "Total DM (g/m²)",             data = cmp),
+    list(r = "R_MXLAI", ref = "Ref_MXLAI", name = "Max LAI (m²/m²)",             data = cmp),
+    list(r = "R_dtR8",  ref = "Ref_dtR8",  name = "Days to Maturity",             data = cmp),
+    list(r = "R_dtR5",  ref = "Ref_dtR5",  name = "Days to R5",                   data = cmp),
+    list(r = "R_CE",    ref = "Ref_CE",    name = "Soil Evaporation (mm)",         data = cmp),
+    list(r = "R_CTR",   ref = "Ref_CTR",   name = "Transpiration (mm)",            data = cmp),
+    list(r = "R_HI",    ref = "Ref_HI",    name = "Harvest Index",                 data = cmp),
+    list(r = "R_Ywet",  ref = "Ref_Ywet",  name = "Wet Yield (kg/ha)",            data = cmp),
+    list(r = "R_CIRGW", ref = "Ref_CIRGW", name = "Cumul. Irrigation (mm) [IRRI]",data = cmp_irri),
+    list(r = "R_IRGNO", ref = "Ref_IRGNO", name = "Irrigation Events [IRRI]",     data = cmp_irri),
+    list(r = "R_IPASW", ref = "Ref_IPASW", name = "Init. Plant-Avail. SW (mm)",   data = cmp)
   )
 
   stats_rows <- lapply(var_pairs, function(vp) {
-    s <- calc_stats(cmp[[vp$r]], cmp[[vp$ref]])
+    s <- calc_stats(vp$data[[vp$r]], vp$data[[vp$ref]])
     data.frame(Variable = vp$name, n = s$n,
                RMSE = round(s$RMSE, 3), Bias = round(s$Bias, 3),
                R2 = round(s$R2, 4), stringsAsFactors = FALSE)

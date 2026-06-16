@@ -8,3 +8,6 @@
 "Transpiration (mm)",7200,0.917,0.014,1
 "Harvest Index",7200,0,0,1
 "Wet Yield (kg/ha)",7200,6.046,0.08,1
+"Cumul. Irrigation (mm) [IRRI]",3600,3.281,-0.11,0.9997
+"Irrigation Events [IRRI]",3600,0.133,-0.001,0.999
+"Init. Plant-Avail. SW (mm)",7200,1.865,0.13,0.9993
