@@ -1,10 +1,10 @@
 "Variable","n","RMSE","Bias","R2"
-"Grain Yield (g/m²)",7200,0.528,-0.003,1
-"Total DM (g/m²)",7200,2.14,-0.007,1
+"Grain Yield (g/m²)",7200,0.526,0.007,1
+"Total DM (g/m²)",7200,2.132,0.032,1
 "Max LAI (m²/m²)",7200,0.03,0,1
-"Days to Maturity",7200,0.047,-0.001,1
+"Days to Maturity",7200,0,0,1
 "Days to R5",7200,0.075,0.001,1
-"Soil Evaporation (mm)",7200,67.935,-42.115,0.5875
-"Transpiration (mm)",7200,0.921,-0.002,1
+"Soil Evaporation (mm)",7200,2.164,0.1,0.9996
+"Transpiration (mm)",7200,0.917,0.014,1
 "Harvest Index",7200,0,0,1
-"Wet Yield (kg/ha)",7200,6.073,-0.039,1
+"Wet Yield (kg/ha)",7200,6.046,0.08,1
