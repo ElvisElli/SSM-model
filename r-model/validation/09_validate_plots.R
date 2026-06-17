@@ -161,16 +161,17 @@ match_r_to_ref <- function(r_df, ref_df) {
 # Calculates RMSE, bias, and R² for a pair of vectors.
 # =============================================================================
 calc_stats <- function(sim, obs) {
-  if (length(sim) < 3) return(list(RMSE = NA, Bias = NA, R2 = NA, n = length(sim)))
+  if (length(sim) < 3) return(list(RMSE = NA, RRMSE = NA, Bias = NA, R2 = NA, n = length(sim)))
   valid <- !is.na(sim) & !is.na(obs)
   sim <- sim[valid]; obs <- obs[valid]
-  n    <- length(sim)
-  RMSE <- sqrt(mean((sim - obs)^2))
-  Bias <- mean(sim - obs)
+  n     <- length(sim)
+  RMSE  <- sqrt(mean((sim - obs)^2))
+  RRMSE <- if (mean(obs) != 0) RMSE / abs(mean(obs)) * 100 else NA  # % of observed mean
+  Bias  <- mean(sim - obs)
   ss_res <- sum((sim - obs)^2)
   ss_tot <- sum((obs - mean(obs))^2)
-  R2   <- 1 - ss_res / max(ss_tot, 1e-10)
-  list(RMSE = RMSE, Bias = Bias, R2 = R2, n = n)
+  R2    <- 1 - ss_res / max(ss_tot, 1e-10)
+  list(RMSE = RMSE, RRMSE = RRMSE, Bias = Bias, R2 = R2, n = n)
 }
 
 
@@ -540,8 +541,9 @@ create_validation_plots <- function(results_dir = RESULTS_DIR,
   stats_rows <- lapply(var_pairs, function(vp) {
     s <- calc_stats(vp$data[[vp$r]], vp$data[[vp$ref]])
     data.frame(Variable = vp$name, n = s$n,
-               RMSE = round(s$RMSE, 3), Bias = round(s$Bias, 3),
-               R2 = round(s$R2, 4), stringsAsFactors = FALSE)
+               RMSE = round(s$RMSE, 3), RRMSE_pct = round(s$RRMSE, 2),
+               Bias = round(s$Bias, 3), R2 = round(s$R2, 4),
+               stringsAsFactors = FALSE)
   })
   stats_df <- do.call(rbind, stats_rows)
 
