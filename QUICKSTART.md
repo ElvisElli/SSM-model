@@ -10,13 +10,13 @@ Soltani & Sinclair (2012) *Modeling Physiology of Crop Development, Growth and Y
 - **R ≥ 4.0** — download from <https://cran.r-project.org>
 - **RStudio** (optional but recommended) — download from <https://posit.co>
 
-Open a terminal (or the R console) in the project root and run the setup script **once**:
+Run the setup script **once** to install all required packages:
 
 ```r
 Rscript r-model/code/00_install_packages.R
 ```
 
-This installs all required CRAN packages automatically. The core model (`08_run_model.R`) also auto-installs its own dependencies on first run.
+The model also auto-installs its core dependencies on first run if any are missing.
 
 ---
 
@@ -25,14 +25,17 @@ This installs all required CRAN packages automatically. The core model (`08_run_
 ### From the command line
 
 ```bash
-# Serial mode (exact reference match — recommended for validation)
+# Run all scenarios, yearly outputs only
 Rscript r-model/code/08_run_model.R
 
-# Parallel mode — auto-detects physical cores (fast, for exploratory work)
+# Yearly + daily time-step outputs
+Rscript r-model/code/08_run_model.R --daily
+
+# Parallel mode — auto-detects physical cores
 Rscript r-model/code/08_run_model.R --parallel
 
-# Parallel mode — specify core count
-Rscript r-model/code/08_run_model.R --parallel --cores 16
+# Parallel + daily outputs, 16 cores
+Rscript r-model/code/08_run_model.R --parallel --cores 16 --daily
 ```
 
 ### From R / RStudio
@@ -42,44 +45,90 @@ Open `SSM-soybean.Rproj` in RStudio, then:
 ```r
 source("r-model/code/08_run_model.R")
 
-# Serial run (exact VBA match)
-results <- run_all_scenarios()
-
-# Parallel run (each scenario independent, FTSWRZ starts at 0)
-results <- run_all_scenarios(parallel = TRUE)
-results <- run_all_scenarios(parallel = TRUE, n_cores = 8)
+results <- run_all_scenarios()                        # yearly only
+results <- run_all_scenarios(save_daily = TRUE)       # yearly + daily
+results <- run_all_scenarios(parallel = TRUE)         # parallel mode
+results <- run_all_scenarios(parallel = TRUE,
+                             n_cores  = 16,
+                             save_daily = TRUE)       # parallel + daily
 ```
 
-### Output
+Each scenario (row in `scenarios.csv`) is an independent simulation. Serial
+and parallel modes produce identical results.
 
-Results are written to `r-model/outputs/results/`:
+---
+
+## 3. Yearly Outputs
+
+Yearly summary CSVs are written to `r-model/outputs/results/`:
 
 | File | Contents |
 |------|----------|
 | `all_results.csv` | All scenarios combined |
 | `<Location>_results.csv` | One file per location |
 
-Each row is one simulated year. Key columns:
+Each row is one simulated year. Key output columns:
 
 | Column | Description |
 |--------|-------------|
 | `WGRN` | Grain dry mass (g m⁻²) |
 | `WTOP` | Total above-ground dry mass (g m⁻²) |
 | `HI` | Harvest index |
-| `MXLAI` | Maximum leaf area index |
-| `CE` | Cumulative soil evaporation (mm) |
-| `CTR` | Cumulative transpiration (mm) |
-| `CRAIN` | Cumulative rainfall (mm) |
-| `CIRGW` | Cumulative irrigation water applied (mm) |
-| `IRGNO` | Number of irrigation events |
+| `MXLAI` | Maximum leaf area index (m² m⁻²) |
 | `dtR1…R8` | Days after planting to each phenological stage |
+| `CE` | Cumulative soil evaporation (mm) |
+| `CTR` | Cumulative crop transpiration (mm) |
+| `CRAIN` | Cumulative rainfall (mm) |
+| `CIRGW` | Cumulative irrigation applied (mm) |
+| `IRGNO` | Number of irrigation events |
+| `IPASW` | Initial plant-available soil water (mm) |
+| `CDRAIN` | Cumulative drainage below root zone (mm) |
+| `MATYP` | Maturity type (1=normal, 2=early-LAI death, 4=stopped, 5=flood kill) |
 
 ---
 
-## 3. Changing Weather
+## 4. Daily Outputs
+
+Enable with `save_daily = TRUE` (or `--daily` from the command line).  
+One CSV per scenario is saved to `r-model/outputs/results/daily/`:
+
+```
+daily/<sName>_daily.csv
+```
+
+Each row is one simulated day. Key daily columns:
+
+| Column | Description |
+|--------|-------------|
+| `sName`, `year`, `doy`, `DAP` | Scenario and date identifiers |
+| `CBD` | Cumulative biological days (phenological clock) |
+| `LAI` | Leaf area index (m² m⁻²) |
+| `DDMP` | Daily dry matter production (g m⁻² d⁻¹) |
+| `SGR` | Seed growth rate (g m⁻² d⁻¹) |
+| `WTOP` | Above-ground dry mass (g m⁻²) |
+| `WGRN` | Grain dry mass (g m⁻²) |
+| `RAIN`, `IRGW` | Daily rainfall and irrigation (mm) |
+| `SEVP`, `TR` | Soil evaporation and transpiration (mm d⁻¹) |
+| `CE`, `CTR` | Cumulative evaporation and transpiration (mm) |
+| `FTSWRZ` | Fraction of transpirable soil water in root zone (0–1) |
+| `WSFL`, `WSFG`, `WSFD` | Water stress factors for leaf, growth, development |
+| `ATSWRZ` | Available soil water in root zone (mm) |
+| `DEPORT` | Rooting depth (cm) |
+
+Example — read and plot daily LAI for one scenario:
+
+```r
+d <- read.csv("r-model/outputs/results/daily/JB-RFD-LTE-check_daily.csv")
+plot(d$doy[d$year == 1991], d$LAI[d$year == 1991],
+     type = "l", xlab = "Day of year", ylab = "LAI")
+```
+
+---
+
+## 5. Changing Weather
 
 Weather files are Excel workbooks in `r-model/inputs/weather/`.  
-Each file covers one location and contains daily data with columns:
+Each file covers one location with daily data:
 
 | Column | Unit | Description |
 |--------|------|-------------|
@@ -92,73 +141,67 @@ Each file covers one location and contains daily data with columns:
 
 **To add a new location:**
 
-1. Create a new Excel file following the same column structure.
+1. Create an Excel file following the same column structure.
 2. Place it in `r-model/inputs/weather/`.
-3. Add rows to `r-model/inputs/scenarios.csv` pointing to the new file:
-   - Set `wth_file` to the filename (e.g., `NewSite.xlsx`).
-   - Set `loc_name`, `lat`, and other location-specific fields.
+3. Add rows to `scenarios.csv` pointing to it (`wth_file` column).
 
-**To apply a climate-change scenario** without editing the weather file, use the `tchng` and `pchng` columns in `scenarios.csv`:
+**Climate-change adjustments** without editing the weather file — set in `scenarios.csv`:
 
 - `tchng` — temperature offset (°C), e.g. `2` adds 2°C to every day
-- `pchng` — rainfall multiplier, e.g. `0.9` reduces rainfall by 10%
+- `pchng` — rainfall multiplier, e.g. `0.9` reduces all rainfall by 10%
 
 ---
 
-## 4. Changing Management
+## 6. Changing Management
 
-Edit `r-model/inputs/scenarios.csv`. Each row is one simulation scenario.  
-Key management columns:
+Edit `r-model/inputs/scenarios.csv`. Each row is one simulation scenario.
 
 | Column | Description | Example values |
-|--------|-------------|---------------|
+|--------|-------------|----------------|
 | `pdoy` | Planting day of year | `120` (Apr 30), `150` (May 30) |
 | `sim_doy` | Simulation start DOY (≤ pdoy) | Same as `pdoy` |
 | `pden` | Plant density (plants m⁻²) | `30`, `40` |
-| `water` | Water management: 0=rain-fed, 1=auto-irr, 2=SCS-CN, 3=mixed | `0`, `1` |
-| `irglvl` | Irrigation trigger (FTSWRZ threshold, 0–1) | `0.60` |
+| `water` | Water mode: 0=rain-fed, 1=auto-irr, 2=SCS-CN | `0`, `1` |
+| `irglvl` | Auto-irrigation trigger (FTSWRZ threshold) | `0.60` |
+| `co2` | Ambient CO₂ (ppm) | `420`, `550` |
 | `tchng` | Temperature change (°C) | `0`, `2`, `4` |
 | `pchng` | Rainfall multiplier | `1.0`, `0.9` |
-| `co2` | Ambient CO₂ (ppm) | `420`, `550` |
 
-**To add a new scenario**, copy an existing row and edit the columns above.  
+To add a new scenario, copy an existing row and edit the columns.  
 Give it a unique name in the `scenario` column.
 
 ---
 
-## 5. Changing Crop Cultivar
+## 7. Changing Crop Cultivar
 
-Crop cultivar parameters are stored as columns in `scenarios.csv`  
-(one value per scenario row, same cultivar applied to all years).
-
-Key cultivar parameters:
+Cultivar parameters are columns in `scenarios.csv` (same value applied to all years of that row).
 
 | Column | Description |
 |--------|-------------|
 | `PHYL` | Phyllochron (°C·d per leaf) |
-| `PLACON`, `PLAPOW` | Leaf area coefficients |
+| `PLACON`, `PLAPOW` | Leaf area power-function coefficients |
 | `PDHI` | Potential daily harvest index increment |
 | `IRUE` | Intrinsic radiation-use efficiency (g DM MJ⁻¹ PAR) |
-| `vpdtp` | VPD mode: 0 = daily, 1 = hourly (limited transpiration trait) |
-| `VPDcr` | Critical VPD for LT trait (kPa) |
-| `cpp`, `ppsen` | Photoperiod parameters |
-| `bdR5R7` | Duration of seed fill in biological days |
+| `vpdtp` | VPD mode: 0 = daily (no LT trait), 1 = hourly (LT trait active) |
+| `VPDcr` | Critical VPD for limited-transpiration trait (kPa) |
+| `cpp`, `ppsen` | Critical photoperiod and photoperiod sensitivity |
+| `bdR5R7` | Seed-fill duration (biological days) |
 
-The four standard cultivars in the current scenarios:
+Standard cultivars in the current scenarios:
 
 | Cultivar | `vpdtp` | `VPDcr` | Description |
 |----------|---------|---------|-------------|
-| check | 0 | — | No LT trait (unlimited transpiration) |
+| check | 0 | — | No LT trait |
 | LT1.5 | 1 | 1.5 kPa | Limited transpiration, low threshold |
 | LT2 | 1 | 2.0 kPa | Limited transpiration, medium |
 | LT2.5 | 1 | 2.5 kPa | Limited transpiration, high threshold |
 
 ---
 
-## 6. Changing Soil
+## 8. Changing Soil
 
-Soil profiles are stored in `r-model/inputs/soil_data.json` as named entries.  
-Each entry defines 10 soil layers with volumetric water content parameters:
+Soil profiles are in `r-model/inputs/soil_data.json`.  
+Each entry defines 10 layers with:
 
 | Parameter | Description |
 |-----------|-------------|
@@ -168,71 +211,43 @@ Each entry defines 10 soil layers with volumetric water content parameters:
 | `DRAINF` | Drainage fraction per layer per day |
 | `thickness` | Layer thickness (cm) |
 
-**To add a new soil**, add a new JSON entry following the existing structure,  
-then reference its key in the `soil_row` column of `scenarios.csv`.
+To add a new soil, add an entry to the JSON and reference its key in `soil_row` in `scenarios.csv`.
 
 ---
 
-## 7. Running Validation Plots
+## 9. Parallel Execution
 
-After running the model, compare results to the Excel reference:
-
-```r
-BASE_DIR <- "/path/to/r-model"   # set your path
-source(file.path(BASE_DIR, "code", "09_validate_plots.R"))
-```
-
-Plots are saved to `r-model/outputs/plots/`. They include scatter plots  
-(R vs Excel reference) with R² and RMSE for: WGRN, WTOP, MXLAI, CE, CTR,  
-CIRGW, IRGNO, IPASW, and phenological stages.
-
----
-
-## 8. Parallel Execution (HPC / Multi-Core)
-
-### When to use parallel mode
-
-- For large sensitivity analyses or new-scenario exploration
-- When strict VBA numerical match is not required
-- On machines with ≥ 4 cores
-
-### How it works
-
-- **Serial (default)**: FTSWRZ threads across all 240 scenarios in CSV order — exact VBA match.
-- **Parallel**: each scenario runs independently with FTSWRZ = 0 at start. Faster, small numerical difference at season boundaries.
+Each scenario is an independent simulation — results are identical whether run in
+serial or parallel mode.
 
 ```bash
-# Use all physical cores minus one (auto)
+# Auto-detect physical cores
 Rscript r-model/code/08_run_model.R --parallel
 
-# Pin to 16 cores explicitly
+# Pin to a specific number of cores
 Rscript r-model/code/08_run_model.R --parallel --cores 16
 ```
 
-From R:
-
 ```r
-# Auto-detect cores
+# From R
 results <- run_all_scenarios(parallel = TRUE)
-
-# Specify cores
 results <- run_all_scenarios(parallel = TRUE, n_cores = 16)
 ```
 
-The model auto-detects the OS and uses `mclapply` (Linux/macOS) or  
-`parLapply` with a PSOCK cluster (Windows).
+The model auto-detects the OS: uses `mclapply` on Linux/macOS (fork-based,
+inherits environment), or `parLapply` with a PSOCK cluster on Windows.
 
 ---
 
-## 9. Project Structure
+## 10. Project Structure
 
 ```
 SSM-model/
 ├── QUICKSTART.md              ← this file
-├── SSM-soybean.Rproj          ← RStudio project (open this first)
+├── SSM-soybean.Rproj          ← open this in RStudio
 ├── r-model/
-│   ├── code/
-│   │   ├── 00_install_packages.R  ← run once to set up
+│   ├── code/                  ← simulation model (shared with users)
+│   │   ├── 00_install_packages.R  ← one-time setup
 │   │   ├── 01_read_inputs.R       ← weather, soil, scenario readers
 │   │   ├── 02_phenology.R         ← biological day framework
 │   │   ├── 03_crop_lai.R          ← leaf area index sub-model
@@ -240,29 +255,26 @@ SSM-model/
 │   │   ├── 05_dm_distribution.R   ← grain filling / DM partitioning
 │   │   ├── 06_soil_water.R        ← 10-layer soil water balance
 │   │   ├── 07_ssm_model.R         ← daily integration loop
-│   │   ├── 08_run_model.R         ← batch runner (serial & parallel)
-│   │   ├── 09_validate_plots.R    ← R vs Excel reference plots
-│   │   └── 10_daily_plots.R       ← daily time-step overlay plots
+│   │   └── 08_run_model.R         ← batch runner (serial & parallel)
 │   ├── inputs/
 │   │   ├── scenarios.csv          ← all scenario definitions
 │   │   ├── soil_data.json         ← soil profiles
 │   │   └── weather/               ← one .xlsx per location
 │   └── outputs/
-│       ├── results/               ← CSV outputs written here
-│       └── plots/                 ← validation and daily plots
+│       └── results/               ← CSV outputs written here
+│           └── daily/             ← daily CSVs (when save_daily=TRUE)
 └── docs/
     └── SSM_Soybean_Documentation.html  ← full technical documentation
 ```
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | `Cannot locate r-model base directory` | Script not found via call stack | Set `BASE_DIR <- "/path/to/r-model"` before sourcing |
-| `Weather file not found: ...` | `wth_file` column in scenarios.csv doesn't match actual filename | Check spelling and file location in `inputs/weather/` |
-| `No soil data for soil_row=...` | `soil_row` key not in `soil_data.json` | Add entry to JSON or fix `soil_row` in scenarios.csv |
-| Package not found error | Packages not installed | Run `Rscript r-model/code/00_install_packages.R` |
-| Parallel mode hangs on Windows | PSOCK cluster issue | Try fewer cores or use serial mode |
-| Results differ between serial and parallel | FTSWRZ carry-over absent in parallel | Expected; use serial for exact VBA match |
+| `Weather file not found` | `wth_file` column doesn't match actual filename | Check spelling in `inputs/weather/` |
+| `No soil data for soil_row=…` | Key not in `soil_data.json` | Add entry to JSON or fix `soil_row` in scenarios.csv |
+| Package not found | Packages not installed | Run `Rscript r-model/code/00_install_packages.R` |
+| Parallel hangs on Windows | PSOCK cluster issue | Try fewer cores or use serial mode |
