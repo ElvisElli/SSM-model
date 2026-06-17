@@ -165,6 +165,14 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE, init_ftswrz
   # ====================================================================
   i_day <- 0L  # sequential daily output counter
 
+  # Phenology parameters are constant for the entire simulation; build once.
+  pheno_pars <- list(
+    TBD = as.numeric(scn$TBD), TP1D = as.numeric(scn$TP1D),
+    TP2D = as.numeric(scn$TP2D), TCD = as.numeric(scn$TCD),
+    cpp = as.numeric(scn$cpp), ppsen = as.numeric(scn$ppsen),
+    LAT = LAT, StopDoy = StopDoy
+  )
+
   while (MAT == 0 && wrow <= nrow(wth_sim)) {
     # --- Read weather for today -------------------------------------------
     w    <- get_weather_row(wth_sim, wrow, tchng, pchng, SNOW)
@@ -188,12 +196,6 @@ run_ssm_year <- function(scn, wth_data, soil, year, verbose = FALSE, init_ftswrz
     )
 
     # --- 1. PHENOLOGY (advance CBD, calculate bd, DTU) -------------------
-    pheno_pars <- list(
-      TBD = as.numeric(scn$TBD), TP1D = as.numeric(scn$TP1D),
-      TP2D = as.numeric(scn$TP2D), TCD = as.numeric(scn$TCD),
-      cpp = as.numeric(scn$cpp), ppsen = as.numeric(scn$ppsen),
-      LAT = LAT, StopDoy = StopDoy
-    )
     state <- step_phenology_legume(state, pheno_pars, bd_thres, w)
 
     CBD    <- state$CBD; DAP <- state$DAP
