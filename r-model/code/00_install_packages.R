@@ -1,40 +1,52 @@
 # =============================================================================
-# SSM Soybean Model - Package Installation
+# SSM Soybean Model - One-Time Package Setup
 # =============================================================================
 # Run this script once before using the model for the first time.
-# It installs all required R packages.
+# It installs all required R packages from CRAN.
+#
+# Note: 'parallel' is part of base R and does not need to be installed.
+#
+# Usage:
+#   Rscript r-model/code/00_install_packages.R
+# Or from R console:
+#   source("r-model/code/00_install_packages.R")
 # =============================================================================
 
 packages_needed <- c(
+  # Core model and I/O
   "readxl",       # Read Excel weather input files (.xlsx)
-  "openxlsx",     # Read Excel output files for validation
+  "jsonlite",     # Read JSON soil parameter files
   "dplyr",        # Data manipulation
+  # Validation and plotting (09_validate_plots.R, 10_daily_plots.R)
+  "openxlsx",     # Read Excel reference output for validation
   "tidyr",        # Data reshaping
-  "ggplot2",      # Plotting and visualization
-  "purrr",        # Functional programming (map, reduce)
-  "jsonlite",     # Read JSON parameter files
-  "scales",       # Plot scales and formatting
-  "ggpmisc",      # Statistical annotations on plots
-  "gridExtra",    # Arrange multiple plots
-  "viridis",      # Color-blind-friendly palettes
-  "RColorBrewer"  # Additional color palettes
+  "ggplot2",      # Plotting
+  "gridExtra",    # Multi-panel plot layouts
+  "scales",       # Axis formatting
+  "ggpmisc",      # R² and equation annotations on plots
+  "viridis",      # Colour-blind-friendly palettes
+  "RColorBrewer", # Additional colour palettes
+  "purrr"         # Functional utilities (map, reduce)
 )
 
-# Install any missing packages
+cat("Checking required packages...\n")
+
 installed <- rownames(installed.packages())
 to_install <- packages_needed[!packages_needed %in% installed]
 
 if (length(to_install) > 0) {
-  message("Installing packages: ", paste(to_install, collapse = ", "))
+  cat("Installing:", paste(to_install, collapse = ", "), "\n")
   install.packages(to_install, repos = "https://cloud.r-project.org")
 } else {
-  message("All required packages are already installed.")
+  cat("All packages already installed.\n")
 }
 
-# Verify installation
-loaded <- sapply(packages_needed, requireNamespace, quietly = TRUE)
-if (all(loaded)) {
-  message("All packages successfully loaded.")
+# Verify
+ok <- sapply(packages_needed, requireNamespace, quietly = TRUE)
+if (all(ok)) {
+  cat("\nAll packages verified successfully.\n")
+  cat("You are ready to run the SSM Soybean Model.\n")
 } else {
-  warning("Failed to load: ", paste(names(loaded)[!loaded], collapse = ", "))
+  warning("Failed to load: ", paste(names(ok)[!ok], collapse = ", "),
+          "\nTry re-running this script or installing manually.")
 }
