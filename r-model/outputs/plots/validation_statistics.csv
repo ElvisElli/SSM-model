@@ -1,13 +1,13 @@
 "Variable","n","RMSE","Bias","R2"
-"Grain Yield (g/m²)",7200,0.526,0.007,1
-"Total DM (g/m²)",7200,2.132,0.032,1
-"Max LAI (m²/m²)",7200,0.03,0,1
-"Days to Maturity",7200,0,0,1
-"Days to R5",7200,0.075,0.001,1
-"Soil Evaporation (mm)",7200,2.164,0.1,0.9996
-"Transpiration (mm)",7200,0.917,0.014,1
-"Harvest Index",7200,0,0,1
-"Wet Yield (kg/ha)",7200,6.046,0.08,1
-"Cumul. Irrigation (mm) [IRRI]",3600,3.281,-0.11,0.9997
-"Irrigation Events [IRRI]",3600,0.133,-0.001,0.999
-"Init. Plant-Avail. SW (mm)",7200,1.865,0.13,0.9993
+"Grain Yield (g/m²)",7200,0.731,0.012,1
+"Total DM (g/m²)",7200,2.869,0.054,1
+"Max LAI (m²/m²)",7200,0.036,0.001,0.9999
+"Days to Maturity",7200,0.033,0,1
+"Days to R5",7200,0.081,0.002,1
+"Soil Evaporation (mm)",7200,2.442,0.135,0.9995
+"Transpiration (mm)",7200,1.247,0.024,1
+"Harvest Index",7200,0.001,0,0.9999
+"Wet Yield (kg/ha)",7200,8.403,0.135,1
+"Cumul. Irrigation (mm) [IRRI]",3600,3.319,-0.096,0.9997
+"Irrigation Events [IRRI]",3600,0.136,0,0.999
+"Init. Plant-Avail. SW (mm)",7200,1.892,0.101,0.9992
