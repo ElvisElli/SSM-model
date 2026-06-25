@@ -1,0 +1,12 @@
+"Variable","n","RMSE","RRMSE_pct","Bias","R2"
+"Yield (kg/ha) - All",56,4665.9,167,4036.3,0.766
+"Biomass (kg/ha) - All",56,9187.3,156.1,8381.4,0.794
+"Harvest Index - All",56,0.1,19.9,-0.1,0.167
+"Yield (kg/ha) - Irrigated",36,5751.6,164.6,5717.4,0.057
+"Biomass (kg/ha) - Irrigated",36,11124.2,152.3,11064.1,0.006
+"HI - Irrigated",36,0.1,11.4,0,0.006
+"Yield (kg/ha) - Rainfed",20,1187.9,77.4,1010.3,0
+"Biomass (kg/ha) - Rainfed",20,3686.5,110.6,3552.4,0.029
+"HI - Rainfed",20,0.1,30.6,-0.1,0.249
+"Yield (kg/ha) - 2024",40,4880.8,169.3,4219.7,0.726
+"Yield (kg/ha) - 2025",16,4079.2,158.6,3577.8,0.877
