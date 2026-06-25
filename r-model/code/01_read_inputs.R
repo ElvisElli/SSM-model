@@ -17,7 +17,7 @@ library(jsonlite)
 # --- Set the base path for inputs (relative to r-model root) ---------------
 # Set this path before calling the functions below.
 # Alternatively, pass `base_path` to each function.
-SSM_BASE_PATH <- here::here()  # or set manually: SSM_BASE_PATH <- "/path/to/r-model"
+SSM_BASE_PATH <- if (requireNamespace("here", quietly=TRUE)) here::here() else getwd()  # or set manually: SSM_BASE_PATH <- "/path/to/r-model"
 
 
 # =============================================================================
