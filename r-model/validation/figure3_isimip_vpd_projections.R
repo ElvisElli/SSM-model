@@ -104,12 +104,12 @@ LOCATIONS <- data.frame(
 )
 
 GCMS <- data.frame(
-  label    = c("GFDL-ESM4",  "IPSL-CM6A-LR", "MPI-ESM1-2-HR",
-               "MRI-ESM2-0", "UKESM1-0-LL"),
-  csv_slug = c("gfdlesm4",   "ipslcm6alr",   "mpiesm12hr",
-               "mriesm20",   "ukesm10ll"),
-  variant  = c("r1i1p1f1",   "r1i1p1f1",     "r1i1p1f1",
-               "r1i1p1f1",   "r1i1p1f2"),
+  label   = c("GFDL-ESM4",     "IPSL-CM6A-LR",  "MPI-ESM1-2-HR",
+              "MRI-ESM2-0",    "UKESM1-0-LL"),
+  slug    = c("gfdl-esm4",     "ipsl-cm6a-lr",   "mpi-esm1-2-hr",
+              "mri-esm2-0",    "ukesm1-0-ll"),
+  variant = c("r1i1p1f1",      "r1i1p1f1",       "r1i1p1f1",
+              "r1i1p1f1",      "r1i1p1f2"),
   stringsAsFactors = FALSE
 )
 
@@ -120,8 +120,9 @@ SCENARIOS <- data.frame(
 )
 
 # Decade periods available in cache (must match download_isimip_data.py)
+# Historical: decade-aligned; last file covers 2011-2014 only.
 PERIODS <- list(
-  historical = list(c(1985, 1994), c(1995, 2004), c(2005, 2014)),
+  historical = list(c(1981, 1990), c(1991, 2000), c(2001, 2010), c(2011, 2014)),
   ssp126     = list(c(2015, 2020), c(2021, 2030), c(2031, 2040), c(2041, 2050),
                     c(2051, 2060), c(2061, 2070), c(2071, 2080), c(2081, 2090),
                     c(2091, 2100)),
@@ -170,11 +171,12 @@ read_isimip_csv <- function(path) {
 }
 
 # Build expected CSV filename (matches Python downloader convention)
-csv_name <- function(gcm_csv_slug, variant, scenario, variable, lat, lon,
+# Format verified empirically: lon BEFORE lat, slug WITH hyphens
+csv_name <- function(gcm_slug, variant, scenario, variable, lat, lon,
                      yr_start, yr_end) {
-  sprintf("%s_%s_w5e5_%s_%s_lat%glon%g_daily_%d_%d.csv",
-          gcm_csv_slug, variant, scenario, variable,
-          lat, lon, yr_start, yr_end)
+  sprintf("%s_%s_w5e5_%s_%s_lon%glat%g_daily_%d_%d.csv",
+          gcm_slug, variant, scenario, variable,
+          lon, lat, yr_start, yr_end)
 }
 
 
@@ -199,7 +201,7 @@ for (loc_i in seq_len(nrow(LOCATIONS))) {
       for (v in VARIABLES) {
         chunks <- list()
         for (per in periods) {
-          fname <- csv_name(gcm$csv_slug, gcm$variant, scenario, v,
+          fname <- csv_name(gcm$slug, gcm$variant, scenario, v,
                             loc$lat, loc$lon, per[1], per[2])
           fpath <- file.path(CACHE_DIR, fname)
           if (!file.exists(fpath)) next
